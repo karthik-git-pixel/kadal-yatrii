@@ -30,9 +30,6 @@ export default function Home() {
         </Link>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 30, opacity: 0.4, fontSize: '0.8rem' }}>
-        PROTOTYPE DEVELOPED FOR PROJECT KADALYATRI JUDGING PANEL • 2026
-      </div>
     </main>
   );
 }
