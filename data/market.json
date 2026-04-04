@@ -1,0 +1,86 @@
+[
+  {
+    "species": "Indian mackerel",
+    "malayalam": "അയില (Ayala)",
+    "port": "Vizhinjam",
+    "price": 300,
+    "unit": "kg"
+  },
+  {
+    "species": "Indian anchovy",
+    "malayalam": "നത്തോലി (Natholi)",
+    "port": "Kochi",
+    "price": 280,
+    "unit": "kg"
+  },
+  {
+    "species": "Black pomfret",
+    "malayalam": "ആവോലി (Avoli)",
+    "port": "Vizhinjam",
+    "price": 1000,
+    "unit": "kg"
+  },
+  {
+    "species": "Yellowfin tuna",
+    "malayalam": "കേര (Kera)",
+    "port": "Neendakara",
+    "price": 400,
+    "unit": "kg"
+  },
+  {
+    "species": "Japanese threadfin bream",
+    "malayalam": "കിളിമീൻ (Kilimeen)",
+    "port": "Vizhinjam",
+    "price": 240,
+    "unit": "kg"
+  },
+  {
+    "species": "Frigate tuna",
+    "malayalam": "ചൂര (Choora)",
+    "port": "Kozhikode",
+    "price": 280,
+    "unit": "kg"
+  },
+  {
+    "species": "Gold spot mullet",
+    "malayalam": "തിരുത (Thirutha)",
+    "port": "Kochi",
+    "price": 320,
+    "unit": "kg"
+  },
+  {
+    "species": "Black tip reef shark",
+    "malayalam": "സ്രാവ് (Sravu)",
+    "port": "Vizhinjam",
+    "price": 580,
+    "unit": "kg"
+  },
+  {
+    "species": "Pearl Spot",
+    "malayalam": "കരിമീൻ (Karimeen)",
+    "port": "Kochi (Inland)",
+    "price": 650,
+    "unit": "kg"
+  },
+  {
+    "species": "Giant Tiger Prawn",
+    "malayalam": "കൊഞ്ച് (Konchu)",
+    "port": "Kochi",
+    "price": 1200,
+    "unit": "kg"
+  },
+  {
+    "species": "Blue Swimming Crab",
+    "malayalam": "ഞണ്ട് (Njandu)",
+    "port": "Kozhikode",
+    "price": 450,
+    "unit": "kg"
+  },
+  {
+    "species": "Squid",
+    "malayalam": "കൂന്തൽ (Koonthal)",
+    "port": "Vizhinjam",
+    "price": 380,
+    "unit": "kg"
+  }
+]

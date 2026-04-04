@@ -1,0 +1,163 @@
+import { useEffect, useState, useCallback, createContext, useContext, ReactNode } from 'react';
+import initialMarketData from '@/data/market.json';
+
+export type VesselStatus = 'Active' | 'Warning' | 'SOS';
+
+export interface Vessel {
+  id: string;
+  name: string;
+  status: VesselStatus;
+  lat: number;
+  lng: number;
+  speed: number;
+  heading: number;
+  battery: number;
+  lastUpdate: number;
+  meshHops?: string[]; 
+}
+
+export interface IncoisData {
+  waveHeight: number;
+  swell: number;
+  windSpeed: number;
+  safetyScore: number; 
+}
+
+export interface MarketItem {
+  species: string;
+  malayalam: string;
+  port: string;
+  price: number;
+  unit: string;
+}
+
+export interface PFZZone {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  confidence: number;
+}
+
+interface SimulationState {
+  vessels: Vessel[];
+  incoisData: IncoisData;
+  marketData: MarketItem[];
+  pfzZones: PFZZone[];
+  userVesselId: string;
+}
+
+const INITIAL_VESSELS: Vessel[] = [
+  { id: 'v1', name: 'Karunya 1', status: 'Active', lat: 8.384, lng: 76.920, speed: 12, heading: 180, battery: 92, lastUpdate: Date.now() },
+  { id: 'v2', name: 'Mudra 7', status: 'Active', lat: 8.350, lng: 76.880, speed: 8, heading: 175, battery: 88, lastUpdate: Date.now() },
+  { id: 'v3', name: 'Deep Sea X', status: 'Active', lat: 8.300, lng: 76.850, speed: 10, heading: 190, battery: 95, lastUpdate: Date.now() },
+  { id: 'v4', name: 'Fisher Queen', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
+  { id: 'v5', name: 'Navigator', status: 'Active', lat: 8.420, lng: 76.950, speed: 15, heading: 160, battery: 85, lastUpdate: Date.now() },
+];
+
+const INITIAL_PFZ: PFZZone[] = [
+  { id: 'pfz1', name: 'Ayala Hotspot', lat: 8.250, lng: 76.750, radius: 2000, confidence: 92 },
+  { id: 'pfz2', name: 'Kera High Yield', lat: 8.450, lng: 76.900, radius: 3000, confidence: 85 },
+];
+
+const MOCK_INCOIS: IncoisData = {
+  waveHeight: 1.2,
+  swell: 0.8,
+  windSpeed: 15,
+  safetyScore: 85,
+};
+
+const SimulationContext = createContext<{
+  state: SimulationState;
+  triggerSOS: (id: string) => void;
+  resolveSOS: (id: string) => void;
+  fetchLocationSafety: (lat: number, lng: number) => Promise<IncoisData>;
+  updateMarketItem: (item: MarketItem) => void;
+  addPFZZone: (zone: PFZZone) => void;
+} | undefined>(undefined);
+
+export function SimulationProvider({ children }: { children: ReactNode }) {
+  const [vessels, setVessels] = useState<Vessel[]>(INITIAL_VESSELS);
+  const [incoisData, setIncoisData] = useState<IncoisData>(MOCK_INCOIS);
+  const [marketData, setMarketData] = useState<MarketItem[]>(initialMarketData);
+  const [pfzZones, setPfzZones] = useState<PFZZone[]>(INITIAL_PFZ);
+  const userVesselId = 'v1';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedV = localStorage.getItem('ky_vessels');
+    if (savedV) setVessels(JSON.parse(savedV));
+    const savedM = localStorage.getItem('ky_market');
+    if (savedM) setMarketData(JSON.parse(savedM));
+    const savedP = localStorage.getItem('ky_pfz');
+    if (savedP) setPfzZones(JSON.parse(savedP));
+
+    const handleS = (e: StorageEvent) => {
+      if (e.key === 'ky_vessels' && e.newValue) setVessels(JSON.parse(e.newValue));
+      if (e.key === 'ky_market' && e.newValue) setMarketData(JSON.parse(e.newValue));
+      if (e.key === 'ky_pfz' && e.newValue) setPfzZones(JSON.parse(e.newValue));
+    };
+    window.addEventListener('storage', handleS);
+    return () => window.removeEventListener('storage', handleS);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('ky_vessels', JSON.stringify(vessels));
+    localStorage.setItem('ky_market', JSON.stringify(marketData));
+    localStorage.setItem('ky_pfz', JSON.stringify(pfzZones));
+  }, [vessels, marketData, pfzZones]);
+
+  const triggerSOS = useCallback((id: string) => {
+    setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'SOS', meshHops: ['Coast-Station', v.id] } : v));
+  }, []);
+
+  const resolveSOS = useCallback((id: string) => {
+    setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'Active', meshHops: [] } : v));
+  }, []);
+
+  const updateMarketItem = useCallback((newItem: MarketItem) => {
+    setMarketData(prev => {
+      const idx = prev.findIndex(m => m.species === newItem.species && m.port === newItem.port);
+      if (idx > -1) {
+        const up = [...prev];
+        up[idx] = newItem;
+        return up;
+      }
+      return [newItem, ...prev];
+    });
+  }, []);
+
+  const addPFZZone = useCallback((zone: PFZZone) => {
+    setPfzZones(prev => [zone, ...prev]);
+  }, []);
+
+  const fetchLocationSafety = useCallback(async (lat: number, lng: number): Promise<IncoisData> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const d = Math.sqrt(Math.pow(lat - 8.0, 2) + Math.pow(lng - 76.0, 2));
+        const w = +(Math.min(3.5, 1.2 / d)).toFixed(1);
+        resolve({ waveHeight: w, windSpeed: +(w * 12).toFixed(1), swell: +(w * 0.7).toFixed(1), safetyScore: w > 1.8 ? 30 : 90 });
+      }, 1000);
+    });
+  }, []);
+
+  useEffect(() => {
+    const i = setInterval(() => {
+      setVessels(prev => prev.map(v => ({ ...v, lat: v.lat + (Math.random() - 0.5) * 0.0004, lng: v.lng + (Math.random() - 0.5) * 0.0004 })));
+    }, 10000);
+    return () => clearInterval(i);
+  }, []);
+
+  return (
+    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, pfzZones, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, addPFZZone }}>
+      {children}
+    </SimulationContext.Provider>
+  );
+}
+
+export function useSimulation() {
+  const context = useContext(SimulationContext);
+  if (!context) throw new Error('useSimulation must be used within SimulationProvider');
+  return context;
+}
