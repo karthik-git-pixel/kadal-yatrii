@@ -77,7 +77,7 @@ export default function CommandDashboard() {
       setAisStatus("LIVE");
       console.log("AISStream Connected");
       const subscriptionMessage = {
-        APIKey: "JBrh3YXqijMWuQ5Vii1N",
+        APIKey: process.env.NEXT_PUBLIC_AISSTREAM_API_KEY,
         BoundingBoxes: [[[5.0, 70.0], [15.0, 80.0]]], // Much larger area (Arabian Sea / West Coast)
         FilterMessageTypes: ["PositionReport"]
       };
