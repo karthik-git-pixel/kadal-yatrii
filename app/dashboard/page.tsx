@@ -1,6 +1,6 @@
 'use client';
 
-import { useSimulation } from '@/lib/simulation';
+import { useSimulation, Vessel, PFZZone } from '@/lib/simulation';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
@@ -28,7 +28,7 @@ export default function CommandDashboard() {
   const { vessels, incoisData, marketData, pfzZones } = state;
   
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
-  const [L, setL] = useState<any>(null);
+  const [L, setL] = useState<unknown>(null);
   
   const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
@@ -125,7 +125,7 @@ export default function CommandDashboard() {
     }
   };
 
-  const sosVessels = vessels.filter((v: any) => v.status === 'SOS');
+  const sosVessels = vessels.filter((v: Vessel) => v.status === 'SOS');
   const activeSOSQueueCount = liveSOSQueue.length;
   const totalActiveSOSCount = sosVessels.length + activeSOSQueueCount;
   const coastlinePos: [number, number] = [8.38, 76.95];
@@ -310,7 +310,7 @@ export default function CommandDashboard() {
           <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h3 style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '0.15em', fontWeight: 800, marginBottom: '5px' }}>TELEMETRY TRACKING</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-               {vessels.map((v: any) => (
+               {vessels.map((v: Vessel) => (
                  <div key={v.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', borderLeft: `4px solid ${v.status === 'SOS' ? 'var(--accent-orange)' : 'var(--accent-green)'}`, transition: '0.3s' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                      <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{v.name}</div>
@@ -338,11 +338,11 @@ export default function CommandDashboard() {
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <Circle center={coastlinePos} radius={500} color="var(--accent-blue)" fillColor="var(--accent-blue)" fillOpacity={0.4} />
                 
-                {pfzZones.map((z: any) => (
+                {pfzZones.map((z: PFZZone) => (
                   <Circle key={z.id} center={[z.lat, z.lng]} radius={z.radius} pathOptions={{ color: 'var(--accent-green)', fillColor: 'var(--accent-green)', fillOpacity: 0.2 }} />
                 ))}
 
-                {vessels.map((v: any) => (
+                {vessels.map((v: Vessel) => (
                   <Marker key={v.id} position={[v.lat, v.lng]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
@@ -354,7 +354,7 @@ export default function CommandDashboard() {
                     {v.status === 'SOS' && <Circle center={[v.lat, v.lng]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />}
                   </Marker>
                 ))}
-                {sosVessels.map((v: any) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
+                {sosVessels.map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
                 <Marker position={baseStation}>
                   <Popup>
                     <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '5px', fontWeight: 800 }}>
@@ -432,7 +432,7 @@ export default function CommandDashboard() {
                     </div>
                  ))}
 
-                 {sosVessels.map((v: any) => (
+                 {sosVessels.map((v: Vessel) => (
                    <div key={`alert-${v.id}`} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid var(--accent-orange)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
                          <strong style={{ fontSize: '1rem', color: '#fff' }}>{v.name}</strong>

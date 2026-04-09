@@ -8,7 +8,7 @@ export default function FishermanPage() {
   const { vessels, incoisData, userVesselId, marketData, pfzZones } = state;
   const vessel = vessels.find(v => v.id === userVesselId);
   
-  const [activeTab, setActiveTab] = useState<'compass' | 'market' | 'safety'>('compass');
+  const [activeTab, setActiveTab] = useState<'market' | 'safety'>('safety');
   const [selectedMarket, setSelectedMarket] = useState<string>('Vizhinjam');
   
   const [queryLat, setQueryLat] = useState(vessel?.lat.toFixed(4) || '8.3452');
@@ -62,61 +62,7 @@ export default function FishermanPage() {
         </div>
       </div>
 
-      {activeTab === 'compass' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.5s ease' }}>
-          <div className="glass-card" style={{ textAlign: 'center', border: '1px solid rgba(0,210,255,0.1)' }}>
-            <h3 style={{ marginBottom: '15px', fontSize: '0.7rem', color: 'var(--accent-blue)', letterSpacing: '0.2em', fontWeight: 800 }}>MAGNETIC HEADING</h3>
-            <div className="compass-container">
-              <div className="compass-needle" style={{ transform: `rotate(${vessel.heading}deg)` }}></div>
-              <div style={{ position: 'absolute', fontWeight: 800, color: 'white', fontSize: '2.5rem', fontFamily: 'var(--font-mono)' }}>
-                {Math.floor(vessel.heading)}°
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '30px', padding: '0 10px' }}>
-              <div style={{ textAlign: 'left', borderLeft: '2px solid var(--accent-blue)', paddingLeft: '12px' }}>
-                <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>LATITUDE</span>
-                <code style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 600 }}>{vessel.lat.toFixed(4)}</code>
-              </div>
-              <div style={{ textAlign: 'right', borderRight: '2px solid var(--accent-blue)', paddingRight: '12px' }}>
-                <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>LONGITUDE</span>
-                <code style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 600 }}>{vessel.lng.toFixed(4)}</code>
-              </div>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-            <button onClick={handleSOS} className="btn-sos">
-              <span style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', transform: 'scale(1.2)', zIndex: -1, animation: 'sos-pulse-ring 2s infinite' }} />
-              {vessel.status === 'SOS' ? 'STOP' : 'SOS'}
-            </button>
-          </div>
-
-          <div className="glass-card" style={{ padding: '20px', borderLeft: '4px solid var(--accent-green)', background: 'linear-gradient(to right, rgba(0,255,136,0.05), transparent)' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                <span style={{ fontSize: '1.2rem' }}>🎯</span>
-                <h3 style={{ fontSize: '0.8rem', color: 'var(--accent-green)', letterSpacing: '0.1em', fontWeight: 800 }}>PFZ HOTSPOT ADVISORY</h3>
-             </div>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {pfzZones.length === 0 ? <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>No hotspots broadcasted.</p> : (
-                  pfzZones.map(z => {
-                    const dist = (Math.sqrt(Math.pow(vessel.lat - z.lat, 2) + Math.pow(vessel.lng - z.lng, 2)) * 111).toFixed(1);
-                    return (
-                      <div key={z.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
-                        <div>
-                           <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{z.name}</div>
-                           <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '2px' }}>{z.lat}, {z.lng} • CONF: {z.confidence}%</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                           <div style={{ color: 'var(--accent-green)', fontWeight: 800, fontSize: '1.2rem' }}>{dist}km</div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-             </div>
-          </div>
-        </div>
-      )}
 
       {activeTab === 'safety' && (
         <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', animation: 'slideUp 0.4s ease' }}>
@@ -190,10 +136,7 @@ export default function FishermanPage() {
 
       {/* FOOTER NAV DOCK */}
       <div className="glass-card" style={{ padding: '14px', display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 20, left: 15, right: 15, zIndex: 1000, borderRadius: '24px', background: 'rgba(13, 19, 33, 0.9)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <div onClick={() => setActiveTab('compass')} style={{ color: activeTab === 'compass' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'compass' ? 'tab-active' : ''}>
-          <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>🧭</div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>COMPASS</span>
-        </div>
+
         <div onClick={() => setActiveTab('safety')} style={{ color: activeTab === 'safety' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'safety' ? 'tab-active' : ''}>
           <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>🌊</div>
           <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>SAFETY</span>

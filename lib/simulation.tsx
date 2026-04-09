@@ -79,19 +79,21 @@ const SimulationContext = createContext<{
 
 export function SimulationProvider({ children }: { children: ReactNode }) {
   const [vessels, setVessels] = useState<Vessel[]>(INITIAL_VESSELS);
-  const [incoisData, setIncoisData] = useState<IncoisData>(MOCK_INCOIS);
+  const [incoisData] = useState<IncoisData>(MOCK_INCOIS);
   const [marketData, setMarketData] = useState<MarketItem[]>(initialMarketData);
   const [pfzZones, setPfzZones] = useState<PFZZone[]>(INITIAL_PFZ);
   const userVesselId = 'v1';
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const savedV = localStorage.getItem('ky_vessels');
-    if (savedV) setVessels(JSON.parse(savedV));
-    const savedM = localStorage.getItem('ky_market');
-    if (savedM) setMarketData(JSON.parse(savedM));
-    const savedP = localStorage.getItem('ky_pfz');
-    if (savedP) setPfzZones(JSON.parse(savedP));
+    setTimeout(() => {
+      const savedV = localStorage.getItem('ky_vessels');
+      if (savedV) setVessels(JSON.parse(savedV));
+      const savedM = localStorage.getItem('ky_market');
+      if (savedM) setMarketData(JSON.parse(savedM));
+      const savedP = localStorage.getItem('ky_pfz');
+      if (savedP) setPfzZones(JSON.parse(savedP));
+    }, 0);
 
     const handleS = (e: StorageEvent) => {
       if (e.key === 'ky_vessels' && e.newValue) setVessels(JSON.parse(e.newValue));
