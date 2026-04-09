@@ -4,6 +4,7 @@ import { useSimulation } from '@/lib/simulation';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
+import mqtt from 'mqtt';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
@@ -18,6 +19,7 @@ export default function CommandDashboard() {
   
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
   const [L, setL] = useState<any>(null);
+  const [mqttSOS, setMqttSOS] = useState<{lat: number, lon: number} | null>(null);
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
   const [newPFZ, setNewPFZ] = useState({ lat: '', lng: '', name: '' });
@@ -36,6 +38,35 @@ export default function CommandDashboard() {
       mod.Marker.prototype.options.icon = DefaultIcon;
       setL(mod);
     });
+  }, []);
+
+  useEffect(() => {
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+    client.on("connect", () => {
+      console.log("MQTT Connected");
+      client.subscribe("kadal/sos");
+    });
+
+    client.on("message", (topic, message) => {
+      if (topic === "kadal/sos") {
+        try {
+          const data = JSON.parse(message.toString());
+          const lat = data.lat;
+          const lon = data.lon;
+          console.log("SOS Received:", lat, lon);
+          
+          setMqttSOS({ lat, lon });
+          alert(`SOS RECEIVED FROM ESP32 AT LAT: ${lat}, LON: ${lon}`);
+        } catch (e) {
+          console.error("Failed to parse SOS message", e);
+        }
+      }
+    });
+
+    return () => {
+      client.end();
+    };
   }, []);
 
   const sosVessels = vessels.filter((v: any) => v.status === 'SOS');
@@ -239,6 +270,18 @@ export default function CommandDashboard() {
                   </Marker>
                 ))}
                 {sosVessels.map((v: any) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
+                {mqttSOS && (
+                  <Marker position={[mqttSOS.lat, mqttSOS.lon]}>
+                    <Popup>
+                      <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
+                         <strong style={{ fontSize: '1.1rem', color: 'red' }}>ESP32 SOS EVENT</strong><br/>
+                         <div style={{ fontSize: '0.8rem', marginTop: '5px' }}>TELEMETRY: {mqttSOS.lat.toFixed(4)}, {mqttSOS.lon.toFixed(4)}</div>
+                      </div>
+                    </Popup>
+                    <Circle center={[mqttSOS.lat, mqttSOS.lon]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />
+                  </Marker>
+                )}
+                {mqttSOS && <Polyline key={`mqtt-mesh-pulse`} positions={[[mqttSOS.lat, mqttSOS.lon], coastlinePos]} color="red" dashArray="8, 12" weight={2} />}
               </MapContainer>
             )}
             <div className="weather-overlay">
@@ -273,6 +316,18 @@ export default function CommandDashboard() {
                         </div>
                      </div>
                    ))}
+                </div>
+             )}
+             {mqttSOS && (
+                <div style={{ padding: '15px', marginTop: '12px', background: 'rgba(255,0,0,0.2)', borderRadius: '16px', border: '2px solid red' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
+                      <strong style={{ fontSize: '1rem', color: '#fff' }}>ESP32 EXTERNAL SOS</strong>
+                      <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>D: {getDistance(mqttSOS.lat, mqttSOS.lon, coastlinePos[0], coastlinePos[1])}km</span>
+                   </div>
+                   <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {mqttSOS.lat.toFixed(4)}, {mqttSOS.lon.toFixed(4)}</div>
+                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button onClick={() => setMqttSOS(null)} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'red', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>ACKNOWLEDGE</button>
+                   </div>
                 </div>
              )}
           </div>
