@@ -58,14 +58,17 @@ export default function Home() {
         </div>
 
         <h1 style={{
-          fontSize: 'clamp(2.5rem, 6vw, 5rem)',
-          fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1,
-          background: 'linear-gradient(135deg, #fff 30%, #00d2ff 70%, #00ff88)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          fontSize: 'clamp(2.5rem, 8vw, 5.5rem)',
+          fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
+          background: 'linear-gradient(to bottom, #ffffff 10%, #00d2ff 40%, #00ff88 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          filter: 'drop-shadow(0 0 30px rgba(0, 210, 255, 0.5))',
+          animation: 'shimmer 3s ease-in-out infinite alternate',
+          marginBottom: '10px'
         }}>
           KADAL YATRI
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.9rem, 2vw, 1.1rem)', marginTop: '14px', maxWidth: '480px', lineHeight: 1.6 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.9rem, 2.2vw, 1.15rem)', marginTop: '14px', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto' }}>
           Empowering small-scale fishers through mesh-networked safety &amp; real-time maritime intelligence.
         </p>
       </div>
@@ -110,6 +113,10 @@ export default function Home() {
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-15px); }
+        }
+        @keyframes shimmer {
+          0% { filter: drop-shadow(0 0 20px rgba(0, 210, 255, 0.4)); opacity: 0.95; }
+          100% { filter: drop-shadow(0 0 40px rgba(0, 255, 136, 0.7)); opacity: 1; }
         }
         @keyframes pulse-dot {
           0%, 100% { opacity: 1; }
