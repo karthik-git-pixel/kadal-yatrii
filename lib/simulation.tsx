@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, createContext, useContext, ReactNode } from 'react';
 import initialMarketData from '@/data/market.json';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 export type VesselStatus = 'Active' | 'Warning' | 'SOS';
 
@@ -111,11 +113,34 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, [vessels, marketData, pfzZones]);
 
   const triggerSOS = useCallback((id: string) => {
-    setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'SOS', meshHops: ['Coast-Station', v.id] } : v));
+    setVessels(prev => {
+      const v = prev.find(v => v.id === id);
+      if (v) {
+        // Log to Firebase
+        addDoc(collection(db, 'sos_alerts'), {
+          vesselId: v.id,
+          vesselName: v.name,
+          lat: v.lat,
+          lng: v.lng,
+          status: 'SOS',
+          timestamp: serverTimestamp()
+        }).catch(err => console.error("Firebase Log Error:", err));
+      }
+      return prev.map(v => v.id === id ? { ...v, status: 'SOS', meshHops: ['Coast-Station', v.id] } : v);
+    });
   }, []);
 
   const resolveSOS = useCallback((id: string) => {
     setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'Active', meshHops: [] } : v));
+    
+    // Update in Firebase
+    const alertsRef = collection(db, 'sos_alerts');
+    const q = query(alertsRef, where("vesselId", "==", id), where("status", "in", ["SOS", "ACTIVE"]));
+    getDocs(q).then(snapshot => {
+      snapshot.forEach(d => {
+        updateDoc(doc(db, 'sos_alerts', d.id), { status: 'RESOLVED', resolvedAt: serverTimestamp() });
+      });
+    });
   }, []);
 
   const updateMarketItem = useCallback((newItem: MarketItem) => {

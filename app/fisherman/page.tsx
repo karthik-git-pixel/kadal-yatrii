@@ -38,8 +38,13 @@ export default function FishermanPage() {
   const safetyInfo = getSafetyClass(currentSafety.waveHeight);
 
   const handleSOS = () => {
-    if (vessel.status === 'SOS') resolveSOS(vessel.id);
-    else triggerSOS(vessel.id);
+    if (vessel.status === 'SOS') {
+      resolveSOS(vessel.id);
+      alert("SOS Deactivated.");
+    } else {
+      triggerSOS(vessel.id);
+      alert("SOS Sent! Distress signal logged to Command Center.");
+    }
   };
 
   return (
@@ -141,6 +146,28 @@ export default function FishermanPage() {
           <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>🌊</div>
           <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>SAFETY</span>
         </div>
+
+        <div onClick={handleSOS} style={{ textAlign: 'center', cursor: 'pointer', flex: 1, position: 'relative', top: '-15px' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            background: vessel.status === 'SOS' ? 'white' : 'red', 
+            color: vessel.status === 'SOS' ? 'red' : 'white',
+            borderRadius: '50%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            fontSize: '1rem', 
+            fontWeight: 900,
+            boxShadow: vessel.status === 'SOS' ? '0 0 20px white' : '0 10px 20px rgba(255,0,0,0.3)',
+            border: '4px solid rgba(255,255,255,0.2)',
+            margin: '0 auto'
+          }}>
+            {vessel.status === 'SOS' ? 'STOP' : 'SOS'}
+          </div>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginTop: '5px' }}>DISTRESS</span>
+        </div>
+
         <div onClick={() => setActiveTab('market')} style={{ color: activeTab === 'market' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'market' ? 'tab-active' : ''}>
           <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>📊</div>
           <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>MARKET</span>
