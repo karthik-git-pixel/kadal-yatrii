@@ -40,7 +40,7 @@ export default function CommandDashboard() {
   const { vessels, incoisData, marketData, pfzZones } = state;
   
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
-  const [L, setL] = useState<unknown>(null);
+  const [L, setL] = useState<object | null>(null);
   
   const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
