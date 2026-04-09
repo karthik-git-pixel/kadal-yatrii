@@ -4,6 +4,17 @@ import { useSimulation } from '@/lib/simulation';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
+import mqtt from 'mqtt';
+
+interface SOSAlert {
+  id: string;
+  vesselId: string;
+  lat: number;
+  lon: number;
+  timestamp: number;
+  time: string;
+  status: "ACTIVE" | "ACKNOWLEDGED";
+}
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
@@ -18,6 +29,9 @@ export default function CommandDashboard() {
   
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
   const [L, setL] = useState<any>(null);
+  
+  const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
+  const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
   const [newPFZ, setNewPFZ] = useState({ lat: '', lng: '', name: '' });
@@ -38,8 +52,84 @@ export default function CommandDashboard() {
     });
   }, []);
 
+  useEffect(() => {
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+    client.on("connect", () => {
+      console.log("MQTT Connected");
+      client.subscribe("kadal/sos");
+    });
+
+    client.on("message", (topic, message) => {
+      if (topic === "kadal/sos") {
+        try {
+          const data = JSON.parse(message.toString());
+          const lat = data.lat;
+          const lon = data.lon;
+          console.log("SOS Received:", lat, lon);
+          
+          setLiveSOSQueue(prev => {
+            const vesselId = data.id || "UNKNOWN_VESSEL";
+            const exists = prev.find(v => v.vesselId === vesselId && v.status === "ACTIVE");
+            
+            if (!exists) {
+              const newSOS: SOSAlert = {
+                id: crypto.randomUUID(),
+                vesselId: vesselId,
+                lat: lat,
+                lon: lon,
+                timestamp: Date.now(),
+                time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                status: "ACTIVE"
+              };
+              return [newSOS, ...prev];
+            }
+            return prev;
+          });
+        } catch (e) {
+          console.error("Failed to parse SOS message", e);
+        }
+      }
+    });
+
+    return () => {
+      client.end();
+    };
+  }, []);
+
+  const handleAcknowledgeSOS = (id: string) => {
+    setLiveSOSQueue(prev => {
+      const index = prev.findIndex(s => s.id === id);
+      if (index === -1) return prev;
+      
+      const target = prev[index];
+      const newPrev = [...prev];
+      newPrev.splice(index, 1);
+      
+      setLiveDistressQueue(dq => {
+        const alreadyExists = dq.some(d => d.id === target.id);
+        if (!alreadyExists) {
+           const updated = { ...target, status: "ACKNOWLEDGED" as const };
+           return [updated, ...dq].sort((a, b) => b.timestamp - a.timestamp);
+        }
+        return dq;
+      });
+      
+      return newPrev;
+    });
+  };
+
+  const clearDistressQueue = () => {
+    if (window.confirm("Clear all acknowledged SOS alerts?")) {
+      setLiveDistressQueue([]);
+    }
+  };
+
   const sosVessels = vessels.filter((v: any) => v.status === 'SOS');
+  const activeSOSQueueCount = liveSOSQueue.length;
+  const totalActiveSOSCount = sosVessels.length + activeSOSQueueCount;
   const coastlinePos: [number, number] = [8.38, 76.95];
+  const baseStation: [number, number] = [9.931801274934871, 76.26649186682151];
 
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371;
@@ -170,7 +260,7 @@ export default function CommandDashboard() {
         }
       `}</style>
 
-      <div className="dashboard-grid">
+      <div className="dashboard-grid" suppressHydrationWarning>
       
         {/* LEFT: FLEET STATUS & TELEMETRY */}
         <aside className="dashboard-left">
@@ -184,10 +274,36 @@ export default function CommandDashboard() {
                 <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white' }}>{vessels.length}</div>
                 <div style={{ fontSize: '0.6rem', color: 'var(--accent-blue)', letterSpacing: '0.1em', fontWeight: 800 }}>TOTAL VESSELS</div>
               </div>
-              <div style={{ background: sosVessels.length > 0 ? 'rgba(255,77,77,0.1)' : 'rgba(255,255,255,0.03)', borderRadius: '14px', padding: '15px', border: `1px solid ${sosVessels.length > 0 ? 'var(--accent-orange)' : 'var(--glass-border)'}` }}>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: sosVessels.length > 0 ? 'var(--accent-orange)' : 'white' }}>{sosVessels.length}</div>
+              <div style={{ background: totalActiveSOSCount > 0 ? 'rgba(255,77,77,0.1)' : 'rgba(255,255,255,0.03)', borderRadius: '14px', padding: '15px', border: `1px solid ${totalActiveSOSCount > 0 ? 'var(--accent-orange)' : 'var(--glass-border)'}` }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: totalActiveSOSCount > 0 ? 'var(--accent-orange)' : 'white' }}>{totalActiveSOSCount}</div>
                 <div style={{ fontSize: '0.6rem', color: 'var(--accent-orange)', letterSpacing: '0.1em', fontWeight: 800 }}>ACTIVE SOS</div>
               </div>
+            </div>
+
+            <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
+                    <span style={{ color: 'var(--accent-orange)' }}>[ Active SOS : {activeSOSQueueCount} ]</span>
+                    <span style={{ color: 'white' }}>[ Live SOS Queue ]</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+                    {liveSOSQueue.map((sos) => (
+                       <div key={sos.id} style={{ padding: '12px', background: 'rgba(255,77,77,0.1)', borderRadius: '10px', borderLeft: '4px solid red' }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                               <strong style={{ color: 'white', fontSize: '0.9rem' }}>Vessel: {sos.vesselId}</strong>
+                               <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 ACTIVE</span>
+                           </div>
+                           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+                               <div>Lat: {sos.lat.toFixed(6)}</div>
+                               <div>Lon: {sos.lon.toFixed(6)}</div>
+                               <div>Time: {sos.time}</div>
+                           </div>
+                           <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
+                       </div>
+                    ))}
+                    {liveSOSQueue.length === 0 && (
+                        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '10px' }}>QUEUE EMPTY</div>
+                    )}
+                </div>
             </div>
           </div>
 
@@ -239,6 +355,46 @@ export default function CommandDashboard() {
                   </Marker>
                 ))}
                 {sosVessels.map((v: any) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
+                <Marker position={baseStation}>
+                  <Popup>
+                    <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '5px', fontWeight: 800 }}>
+                      Coast Guard Command Center – Kochi
+                    </div>
+                  </Popup>
+                </Marker>
+                {[...liveSOSQueue, ...liveDistressQueue].map(sos => (
+                  <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
+                    <Popup>
+                      <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
+                         <strong>{sos.vesselId}</strong>
+                         <br/>
+                         Lat: {sos.lat}
+                         <br/>
+                         Lon: {sos.lon}
+                         <br/>
+                         Status: {sos.status}
+                      </div>
+                    </Popup>
+                    <Polyline
+                      key={`sos-line-${sos.vesselId}-${sos.id}`}
+                      positions={[
+                        baseStation,
+                        [sos.lat, sos.lon]
+                      ]}
+                      pathOptions={{
+                        color: sos.status === "ACTIVE" ? "red" : "yellow",
+                        dashArray: "3, 8",
+                        weight: 2,
+                        opacity: 0.9
+                      }}
+                    />
+                    {sos.status === 'ACTIVE' ? (
+                      <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />
+                    ) : (
+                      <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'yellow', fillColor: 'yellow', fillOpacity: 0.2 }} />
+                    )}
+                  </Marker>
+                ))}
               </MapContainer>
             )}
             <div className="weather-overlay">
@@ -256,25 +412,44 @@ export default function CommandDashboard() {
 
         {/* RIGHT: INTELLIGENCE & MARKET BROADCAST */}
         <aside className="dashboard-right">
-          <div className="glass-card" style={{ background: 'rgba(255,77,77,0.03)', borderColor: sosVessels.length > 0 ? 'var(--accent-orange)' : 'var(--glass-border)' }}>
-             <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-orange)', fontWeight: 800, letterSpacing: '0.1em' }}>🔴 LIVE DISTRESS QUEUE</h3>
-             {sosVessels.length === 0 ? <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '30px' }}>SAFE SECTOR.</div> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                   {sosVessels.map((v: any) => (
-                     <div key={`alert-${v.id}`} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', border: '1px solid var(--accent-orange)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
-                           <strong style={{ fontSize: '1rem', color: '#fff' }}>{v.name}</strong>
-                           <span style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800 }}>D: {getDistance(v.lat, v.lng, coastlinePos[0], coastlinePos[1])}km</span>
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                           <button style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--accent-orange)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>DISPATCH</button>
-                           <button onClick={() => resolveSOS(v.id)} style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white', cursor: 'pointer' }}>❌</button>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             )}
+          <div className="glass-card" style={{ background: 'rgba(255,255,0,0.03)', borderColor: 'var(--glass-border)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+               <h3 style={{ fontSize: '0.8rem', margin: 0, color: 'yellow', fontWeight: 800, letterSpacing: '0.1em' }}>🟡 LIVE DISTRESS QUEUE</h3>
+               <button onClick={clearDistressQueue} style={{ padding: '6px 12px', background: 'rgba(255,255,0,0.1)', border: '1px solid yellow', color: 'yellow', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}>CLEAR LIST</button>
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
+                 {liveDistressQueue.map((sos) => (
+                    <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
+                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
+                          <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
+                       </div>
+                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+                          <div>Lat: {sos.lat.toFixed(6)}</div>
+                          <div>Lon: {sos.lon.toFixed(6)}</div>
+                          <div>Time: {sos.time}</div>
+                       </div>
+                    </div>
+                 ))}
+
+                 {sosVessels.map((v: any) => (
+                   <div key={`alert-${v.id}`} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid var(--accent-orange)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
+                         <strong style={{ fontSize: '1rem', color: '#fff' }}>{v.name}</strong>
+                         <span style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800 }}>D: {getDistance(v.lat, v.lng, coastlinePos[0], coastlinePos[1])}km</span>
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                         <button style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--accent-orange)', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>DISPATCH</button>
+                         <button onClick={() => resolveSOS(v.id)} style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white', cursor: 'pointer' }}>❌</button>
+                      </div>
+                   </div>
+                 ))}
+
+                 {liveDistressQueue.length === 0 && sosVessels.length === 0 && (
+                     <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '20px' }}>SAFE SECTOR.</div>
+                 )}
+             </div>
           </div>
 
           <div className="glass-card" style={{ background: 'rgba(0,255,136,0.03)', borderColor: 'rgba(0,255,136,0.3)' }}>
