@@ -183,7 +183,7 @@ export default function CommandDashboard() {
     // Listen for ACTIVE SOS alerts in real-time
     const qActive = query(
       collection(db, 'sos_alerts'), 
-      where("status", "==", "ACTIVE"),
+      where("status", "in", ["ACTIVE", "SOS"]),
       orderBy("timestamp", "desc")
     );
 
