@@ -653,7 +653,7 @@ export default function CommandDashboard() {
           {/* HIGH WAVE / INCOIS NOTIFICATIONS */}
           <div className="glass-card" style={{ background: 'rgba(255,0,0,0.03)', borderColor: 'rgba(255,0,0,0.3)', marginBottom: '15px' }}>
             <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-orange)', fontWeight: 800, letterSpacing: '0.1em' }}>⚠️ INCOIS HIGH WAVE ADVISORIES</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {hwaAlerts.map((alert, idx) => {
                 const isDanger = alert.district.includes('[DANGER]') || !alert.message.toLowerCase().includes('no immediate action is required');
                 const cardColor = isDanger ? 'var(--accent-orange)' : '#fdd835'; // red/orange for danger, yellow for watch
@@ -688,7 +688,7 @@ export default function CommandDashboard() {
 
 
 
-          <div className="glass-card" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="glass-card" style={{ background: 'rgba(0,210,255,0.03)', borderColor: 'var(--glass-border)', display: 'block' }}>
             <h3 style={{ fontSize: '0.8rem', marginBottom: '20px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.1em' }}>📈 PRICE BROADCASTER</h3>
             <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(0,210,255,0.03)', borderRadius: '16px', border: '1px solid var(--accent-blue-glow)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
