@@ -255,18 +255,18 @@ export default function CommandDashboard() {
     });
 
     client.on("message", (topic, message) => {
+      console.log(`MQTT Message [${topic}]:`, message.toString());
       if (topic === "kadal/sos/karthik_ck") {
         try {
           const data = JSON.parse(message.toString());
           const lat = data.lat;
           const lon = data.lon;
-          console.log("SOS Received:", lat, lon);
+          const vesselId = data.id || "MQTT_VESSEL";
+          const vesselName = data.name || "External Boat";
           
-          const vesselId = data.id || "UNKNOWN_VESSEL";
-          
-          // Log to Firebase - The onSnapshot listener above will handle UI update
           addDoc(collection(db, 'sos_alerts'), {
             vesselId: vesselId,
+            vesselName: vesselName,
             lat: lat,
             lon: lon,
             status: "ACTIVE",
