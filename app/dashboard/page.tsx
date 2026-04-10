@@ -26,6 +26,7 @@ interface SOSAlert {
   time: string;
   source: 'manual' | 'mpu';
   status: "ACTIVE" | "ACKNOWLEDGED";
+  alertCount?: number;
 }
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -106,13 +107,21 @@ export default function CommandDashboard() {
     const qActive = query(sosRef, where("status", "in", ["ACTIVE", "SOS"]));
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
-      const groupedAlerts = new Map<string, SOSAlert>();
+      const alerts: SOSAlert[] = [];
+      const boatAlertCounts: Record<string, number> = {};
+
+      // First pass to count alerts per boat
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
+      });
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
         
         if (timestamp >= oneHourAgo) {
-          const alert: SOSAlert = {
+          alerts.push({
             id: doc.id,
             vesselId: data.vesselId,
             vesselName: data.vesselName || data.vesselId,
@@ -121,28 +130,25 @@ export default function CommandDashboard() {
             timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             source: data.source || 'manual',
-            status: "ACTIVE"
-          };
-          const existing = groupedAlerts.get(data.vesselId);
-          if (!existing || alert.timestamp > existing.timestamp) {
-            groupedAlerts.set(data.vesselId, alert);
-          }
+            status: "ACTIVE",
+            alertCount: boatAlertCounts[data.vesselId] || 1
+          });
         }
       });
-      setLiveSOSQueue(Array.from(groupedAlerts.values()).sort((a, b) => b.timestamp - a.timestamp));
+      setLiveSOSQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
     });
 
     // 2. ACKNOWLEDGED SOS Alerts
     const qAck = query(sosRef, where("status", "==", "ACKNOWLEDGED"));
 
     const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
-      const groupedAck = new Map<string, SOSAlert>();
+      const alerts: SOSAlert[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
 
         if (timestamp >= oneHourAgo) {
-          const alert: SOSAlert = {
+          alerts.push({
             id: doc.id,
             vesselId: data.vesselId,
             vesselName: data.vesselName || data.vesselId,
@@ -152,14 +158,10 @@ export default function CommandDashboard() {
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             source: data.source || 'manual',
             status: "ACKNOWLEDGED"
-          };
-          const existing = groupedAck.get(data.vesselId);
-          if (!existing || alert.timestamp > existing.timestamp) {
-            groupedAck.set(data.vesselId, alert);
-          }
+          });
         }
       });
-      setLiveDistressQueue(Array.from(groupedAck.values()).sort((a, b) => b.timestamp - a.timestamp));
+      setLiveDistressQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
     });
 
     return () => {
@@ -251,22 +253,20 @@ export default function CommandDashboard() {
             }
 
             // ALWAYS update the UI state so the user sees the "sequence" (moves boat to top)
-            const optimisticAlert: SOSAlert = {
-              id: 'opt-' + now,
-              vesselId,
-              vesselName,
-              lat: parseFloat(lat),
-              lon: parseFloat(lon),
-              timestamp: now,
-              time: new Date().toLocaleTimeString('en-US', { hour12: false }),
-              source: source,
-              status: "ACTIVE"
-            };
-
             setLiveSOSQueue(prev => {
-              // Remove old entry for this boat to move NEW one to top
-              const filtered = prev.filter(p => p.vesselId !== vesselId);
-              return [optimisticAlert, ...filtered];
+              const optimisticAlert: SOSAlert = {
+                id: 'opt-' + now,
+                vesselId,
+                vesselName,
+                lat: parseFloat(lat),
+                lon: parseFloat(lon),
+                timestamp: now,
+                time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                source: source,
+                status: "ACTIVE",
+                alertCount: (prev.filter(p => p.vesselId === vesselId).length) + 1
+              };
+              return [optimisticAlert, ...prev];
             });
           });
           
@@ -561,9 +561,14 @@ export default function CommandDashboard() {
                   const bg = isAuto ? 'rgba(255,165,0,0.1)' : 'rgba(255,0,0,0.1)';
                   
                   return (
-                    <div key={`${sos.vesselId}-${sos.id}-${sos.timestamp}`} style={{ padding: '15px', background: bg, borderRadius: '16px', borderLeft: `6px solid ${themeColor}`, border: `1px solid ${themeColor}33` }}>
+                    <div key={`${sos.id}-${sos.timestamp}`} style={{ padding: '15px', background: bg, borderRadius: '16px', borderLeft: `6px solid ${themeColor}`, border: `1px solid ${themeColor}33` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <strong style={{ color: 'white', fontSize: '1.1rem' }}>🚢 {sos.vesselId}</strong>
+                        <strong style={{ color: 'white', fontSize: '1.2rem' }}>🚢 {sos.vesselId}</strong>
+                        {sos.alertCount && sos.alertCount > 1 && (
+                          <span style={{ background: themeColor, color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
+                            {sos.alertCount} ALERTS
+                          </span>
+                        )}
                         <span style={{ fontSize: '0.65rem', color: themeColor, fontWeight: 900, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: `1px solid ${themeColor}` }}>
                           {isAuto ? 'AUTO SOS' : 'MANUAL SOS'}
                         </span>
