@@ -202,6 +202,8 @@ export default function CommandDashboard() {
       });
       activeAlerts.sort((a, b) => b.timestamp - a.timestamp);
       setLiveSOSQueue(activeAlerts);
+    }, (error) => {
+      console.error("Firestore SOS Listener Error:", error);
     });
 
     // Listen for ACKNOWLEDGED alerts in real-time
