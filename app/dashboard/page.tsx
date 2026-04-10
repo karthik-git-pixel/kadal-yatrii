@@ -50,6 +50,9 @@ export default function CommandDashboard() {
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
   const [L, setL] = useState<object | null>(null);
   
+  const [activeTab, setActiveTab] = useState<'status' | 'map' | 'intel'>('map');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
   const [aisVessels, setAisVessels] = useState<Map<number, AISVessel>>(new Map());
@@ -355,6 +358,76 @@ export default function CommandDashboard() {
           gap: 15px;
         }
 
+        /* Mobile Header & Menu Styles */
+        .mobile-header {
+          display: none;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 15px;
+          background: rgba(3, 8, 18, 0.95);
+          border-bottom: 1px solid var(--glass-border);
+          position: sticky;
+          top: 0;
+          z-index: 2000;
+        }
+
+        .hamburger {
+          cursor: pointer;
+          font-size: 1.5rem;
+          color: var(--accent-blue);
+          z-index: 2001;
+        }
+
+        .mobile-menu {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 70%;
+          height: 100%;
+          background: rgba(3, 8, 18, 0.98);
+          z-index: 2005;
+          padding: 60px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+          border-right: 1px solid var(--accent-blue-glow);
+        }
+
+        .mobile-menu.open {
+          transform: translateX(0);
+        }
+
+        .menu-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.7);
+          z-index: 2002;
+          display: none;
+        }
+
+        .menu-overlay.open {
+          display: block;
+        }
+
+        .menu-item {
+          padding: 15px;
+          font-size: 1rem;
+          font-weight: 800;
+          color: white;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          cursor: pointer;
+        }
+
+        .menu-item.active {
+          color: var(--accent-blue);
+          border-bottom-color: var(--accent-blue);
+        }
+
         @media (max-width: 1200px) {
           .dashboard-grid {
             grid-template-columns: 280px 1fr 320px;
@@ -364,23 +437,27 @@ export default function CommandDashboard() {
         }
 
         @media (max-width: 900px) {
+          .mobile-header {
+            display: flex;
+          }
           .dashboard-grid {
             grid-template-columns: 1fr;
             height: auto;
-            min-height: 100vh;
+            min-height: calc(100vh - 50px);
             padding: 10px;
             gap: 12px;
+            display: block;
           }
-          .dashboard-left {
-            order: 2;
+          .dashboard-left, .dashboard-center, .dashboard-right {
+            display: none;
+          }
+          .dashboard-left.active, .dashboard-center.active, .dashboard-right.active {
+            display: flex;
           }
           .dashboard-center {
             order: 1;
-            min-height: 400px;
-            height: 50vh;
-          }
-          .dashboard-right {
-            order: 3;
+            min-height: 500px;
+            height: 70vh;
           }
           .weather-overlay {
             bottom: 10px;
@@ -407,10 +484,24 @@ export default function CommandDashboard() {
         }
       `}</style>
 
+      <div className="mobile-header">
+        <div style={{ color: 'var(--accent-blue)', fontWeight: 800, fontSize: '1rem' }}>🛰️ KADAL COMMAND</div>
+        <div className="hamburger" onClick={() => setIsMenuOpen(true)}>☰</div>
+      </div>
+
+      <div className={`menu-overlay ${isMenuOpen ? 'open' : ''}`} onClick={() => setIsMenuOpen(false)} />
+      
+      <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+        <div style={{ alignSelf: 'flex-end', fontSize: '1.5rem', cursor: 'pointer', color: 'white' }} onClick={() => setIsMenuOpen(false)}>✕</div>
+        <div className={`menu-item ${activeTab === 'map' ? 'active' : ''}`} onClick={() => { setActiveTab('map'); setIsMenuOpen(false); }}>🌍 SURVEILLANCE MAP</div>
+        <div className={`menu-item ${activeTab === 'status' ? 'active' : ''}`} onClick={() => { setActiveTab('status'); setIsMenuOpen(false); }}>🛰️ FLEET STATUS</div>
+        <div className={`menu-item ${activeTab === 'intel' ? 'active' : ''}`} onClick={() => { setActiveTab('intel'); setIsMenuOpen(false); }}>📈 INTEL & BROADCAST</div>
+      </div>
+
       <div className="dashboard-grid" suppressHydrationWarning>
       
         {/* LEFT: FLEET STATUS & TELEMETRY */}
-        <aside className="dashboard-left">
+        <aside className={`dashboard-left ${activeTab === 'status' ? 'active' : ''}`}>
           <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.05), transparent)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-blue)' }}>🛰️ COMMAND</h2>
@@ -500,7 +591,7 @@ export default function CommandDashboard() {
         </aside>
 
         {/* CENTER: SURVEILLANCE MAP */}
-        <main className="dashboard-center">
+        <main className={`dashboard-center ${activeTab === 'map' ? 'active' : ''}`}>
           <div className="glass-card map-wrapper">
             {L && (
               <MapContainer center={[8.35, 76.88]} zoom={11} style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}>
@@ -608,7 +699,7 @@ export default function CommandDashboard() {
         </main>
 
         {/* RIGHT: INTELLIGENCE & MARKET BROADCAST */}
-        <aside className="dashboard-right">
+        <aside className={`dashboard-right ${activeTab === 'intel' ? 'active' : ''}`}>
           <div className="glass-card" style={{ background: 'rgba(255,255,0,0.03)', borderColor: 'var(--glass-border)' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                <h3 style={{ fontSize: '0.8rem', margin: 0, color: 'yellow', fontWeight: 800, letterSpacing: '0.1em' }}>🟡 LIVE DISTRESS QUEUE</h3>
