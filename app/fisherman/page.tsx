@@ -103,7 +103,7 @@ export default function FishermanPage() {
             <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', letterSpacing: '0.2em', fontWeight: 600 }}>NAVIC-LORA CORE</div>
             <button onClick={() => setUserVesselId('')} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-blue)', fontSize: '0.55rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 800, cursor: 'pointer' }}>SWITCH BOAT</button>
           </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{vessel.name}</h2>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '-0.02em' }}>{vessel.name}</h2>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className={`status-badge ${vessel.status === 'SOS' ? 'status-sos' : 'status-active'}`}>
