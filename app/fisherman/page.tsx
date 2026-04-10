@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 export default function FishermanPage() {
-  const { state, triggerSOS, resolveSOS, fetchLocationSafety } = useSimulation();
+  const { state, triggerSOS, resolveSOS, fetchLocationSafety, setUserVesselId } = useSimulation();
   const { vessels, incoisData, userVesselId, marketData, pfzZones } = state;
   const vessel = vessels.find(v => v.id === userVesselId);
   
@@ -35,7 +35,32 @@ export default function FishermanPage() {
     return () => unsubscribe();
   }, []);
 
-  if (!vessel) return <div style={{ color: 'white', padding: '100px', textAlign: 'center' }}>⚙️ Syncing NavIC telemetry...</div>;
+  if (!vessel) {
+    return (
+      <main style={{ padding: '30px 20px', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '25px', height: '100vh', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.2em' }}>IDENTITY SETUP</div>
+          <h1 style={{ fontSize: '2.4rem', fontWeight: 900, marginTop: '5px', background: 'linear-gradient(to right, #00d2ff, #fff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>KadalYatri</h1>
+          <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>നിങ്ങളുടെ വള്ളം തിരഞ്ഞെടുക്കുക<br/>(Select Your Boat)</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {vessels.map(v => (
+            <button 
+              key={v.id} 
+              onClick={() => setUserVesselId(v.id)}
+              style={{ padding: '25px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.3s', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, display: 'block' }}>🚢 {v.name}</span>
+                <span style={{ fontSize: '0.6rem', opacity: 0.4, letterSpacing: '0.1em' }}>VESSEL ID: {v.id.toUpperCase()}</span>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', fontWeight: 800 }}>CONNECT ➡️</span>
+            </button>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   const visibleWarnings = activeWarnings.filter(w => !dismissedWarningIds.includes(w.id));
 
@@ -74,7 +99,10 @@ export default function FishermanPage() {
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 5px' }}>
         <div>
-          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', letterSpacing: '0.2em', fontWeight: 600 }}>NAVIC-LORA CORE</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', letterSpacing: '0.2em', fontWeight: 600 }}>NAVIC-LORA CORE</div>
+            <button onClick={() => setUserVesselId('')} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-blue)', fontSize: '0.55rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 800, cursor: 'pointer' }}>SWITCH BOAT</button>
+          </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{vessel.name}</h2>
         </div>
         <div style={{ textAlign: 'right' }}>

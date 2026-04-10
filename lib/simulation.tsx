@@ -51,11 +51,10 @@ interface SimulationState {
 }
 
 const INITIAL_VESSELS: Vessel[] = [
-  { id: 'v1', name: 'Karunya 1', status: 'Active', lat: 8.384, lng: 76.920, speed: 12, heading: 180, battery: 92, lastUpdate: Date.now() },
-  { id: 'v2', name: 'Mudra 7', status: 'Active', lat: 8.350, lng: 76.880, speed: 8, heading: 175, battery: 88, lastUpdate: Date.now() },
-  { id: 'v3', name: 'Deep Sea X', status: 'Active', lat: 8.300, lng: 76.850, speed: 10, heading: 190, battery: 95, lastUpdate: Date.now() },
-  { id: 'v4', name: 'Fisher Queen', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
-  { id: 'v5', name: 'Navigator', status: 'Active', lat: 8.420, lng: 76.950, speed: 15, heading: 160, battery: 85, lastUpdate: Date.now() },
+  { id: 'v1', name: 'Agnivesh', status: 'Active', lat: 8.384, lng: 76.920, speed: 12, heading: 180, battery: 92, lastUpdate: Date.now() },
+  { id: 'v2', name: 'Karthik', status: 'Active', lat: 8.350, lng: 76.880, speed: 8, heading: 175, battery: 88, lastUpdate: Date.now() },
+  { id: 'v3', name: 'Megha', status: 'Active', lat: 8.300, lng: 76.850, speed: 10, heading: 190, battery: 95, lastUpdate: Date.now() },
+  { id: 'v4', name: 'Amrutha', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
 ];
 
 const INITIAL_PFZ: PFZZone[] = [
@@ -77,6 +76,7 @@ const SimulationContext = createContext<{
   fetchLocationSafety: (lat: number, lng: number) => Promise<IncoisData>;
   updateMarketItem: (item: MarketItem) => void;
   addPFZZone: (zone: PFZZone) => void;
+  setUserVesselId: (id: string) => void;
 } | undefined>(undefined);
 
 export function SimulationProvider({ children }: { children: ReactNode }) {
@@ -84,7 +84,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   const [incoisData] = useState<IncoisData>(MOCK_INCOIS);
   const [marketData, setMarketData] = useState<MarketItem[]>(initialMarketData);
   const [pfzZones, setPfzZones] = useState<PFZZone[]>(INITIAL_PFZ);
-  const userVesselId = 'v1';
+  const [userVesselId, setUserVesselId] = useState<string>('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -95,12 +95,15 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       if (savedM) setMarketData(JSON.parse(savedM));
       const savedP = localStorage.getItem('ky_pfz');
       if (savedP) setPfzZones(JSON.parse(savedP));
+      const savedId = localStorage.getItem('ky_userVesselId');
+      if (savedId) setUserVesselId(savedId);
     }, 0);
 
     const handleS = (e: StorageEvent) => {
       if (e.key === 'ky_vessels' && e.newValue) setVessels(JSON.parse(e.newValue));
       if (e.key === 'ky_market' && e.newValue) setMarketData(JSON.parse(e.newValue));
       if (e.key === 'ky_pfz' && e.newValue) setPfzZones(JSON.parse(e.newValue));
+      if (e.key === 'ky_userVesselId' && e.newValue) setUserVesselId(e.newValue);
     };
     window.addEventListener('storage', handleS);
     return () => window.removeEventListener('storage', handleS);
@@ -110,7 +113,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('ky_vessels', JSON.stringify(vessels));
     localStorage.setItem('ky_market', JSON.stringify(marketData));
     localStorage.setItem('ky_pfz', JSON.stringify(pfzZones));
-  }, [vessels, marketData, pfzZones]);
+    if (userVesselId) localStorage.setItem('ky_userVesselId', userVesselId);
+  }, [vessels, marketData, pfzZones, userVesselId]);
 
   const triggerSOS = useCallback((id: string) => {
     setVessels(prev => {
