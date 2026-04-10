@@ -92,7 +92,19 @@ export default function CommandDashboard() {
         iconSize: [25, 41],
         iconAnchor: [12, 41]
       });
+
+      const CommandIcon = mod.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [30, 48],
+        iconAnchor: [15, 48],
+        popupAnchor: [1, -34],
+        shadowSize: [50, 50]
+      });
+
       mod.Marker.prototype.options.icon = DefaultIcon;
+      // Store in a way that we can use it in the component
+      (window as any).L_CommandIcon = CommandIcon;
       setL(mod);
     });
   }, []);
@@ -443,6 +455,16 @@ export default function CommandDashboard() {
           border-bottom-color: var(--accent-blue);
         }
 
+        @keyframes radar-ping {
+          0% { transform: scale(0.1); opacity: 1; stroke-width: 10; }
+          100% { transform: scale(2.5); opacity: 0; stroke-width: 1; }
+        }
+        .command-scanner {
+          animation: radar-ping 4s ease-out infinite;
+          transform-origin: center;
+          pointer-events: none;
+        }
+
         @media (max-width: 1200px) {
           .dashboard-grid {
             grid-template-columns: 280px 1fr 320px;
@@ -641,13 +663,14 @@ export default function CommandDashboard() {
 
 
 
-                <Marker position={baseStation}>
+                <Marker position={baseStation} icon={(window as any).L_CommandIcon}>
                   <Popup>
                     <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '5px', fontWeight: 800 }}>
                       Coast Guard Command Center – Kochi
                     </div>
                   </Popup>
                 </Marker>
+                <Circle center={baseStation} radius={800} pathOptions={{ color: 'var(--accent-blue)', fillColor: 'var(--accent-blue)', fillOpacity: 0.3, className: 'command-scanner' }} />
                 {[...liveSOSQueue, ...liveDistressQueue].map(sos => {
                   if (!sos.lat || !sos.lon) return null;
                   return (
