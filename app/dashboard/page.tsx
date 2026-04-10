@@ -610,7 +610,7 @@ export default function CommandDashboard() {
                   <Marker 
                     key={`ais-${v.mmsi}`} 
                     position={[v.lat, v.lon]}
-                    icon={L ? (L as any).divIcon({
+                    icon={(L && (L as any).divIcon) ? (L as any).divIcon({
                       className: 'ais-marker',
                       html: `<div style="transform: rotate(${v.course}deg); font-size: 1.2rem; color: #3b82f6; text-shadow: 0 0 5px rgba(0,0,0,0.5)">🚢</div>`,
                       iconSize: [20, 20],
@@ -703,8 +703,8 @@ export default function CommandDashboard() {
                           <span style={{ fontSize: '0.7rem', color: '#ff4d4d', fontWeight: 800 }}>🔴 ACTIVE SOS</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                          <div>Lat: {sos.lat.toFixed(6)}</div>
-                          <div>Lon: {sos.lon.toFixed(6)}</div>
+                          <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
+                          <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
                           <div>Time: {sos.time}</div>
                        </div>
                        <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', background: '#ff4d4d', color: 'white', border: 'none', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 15px rgba(255,77,77,0.4)' }}>ACKNOWLEDGE DISTRESS</button>
@@ -718,8 +718,8 @@ export default function CommandDashboard() {
                           <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                          <div>Lat: {sos.lat.toFixed(6)}</div>
-                          <div>Lon: {sos.lon.toFixed(6)}</div>
+                          <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
+                          <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
                           <div>Time: {sos.time}</div>
                        </div>
                     </div>
@@ -731,7 +731,7 @@ export default function CommandDashboard() {
                          <strong style={{ fontSize: '1rem', color: '#fff' }}>{v.name}</strong>
                          <span style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800 }}>D: {getDistance(v.lat, v.lng, coastlinePos[0], coastlinePos[1])}km</span>
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat?.toFixed(4) || 'N/A'}, {v.lng?.toFixed(4) || 'N/A'}</div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                          <button style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--accent-orange)', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>DISPATCH</button>
                          <button onClick={() => resolveSOS(v.id)} style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white', cursor: 'pointer' }}>❌</button>
@@ -739,7 +739,7 @@ export default function CommandDashboard() {
                    </div>
                  ))}
 
-                 {liveDistressQueue.length === 0 && sosVessels.length === 0 && (
+                 {liveDistressQueue.length === 0 && sosVessels.length === 0 && liveSOSQueue.length === 0 && (
                      <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '20px' }}>SAFE SECTOR.</div>
                  )}
             </div>
@@ -810,6 +810,7 @@ export default function CommandDashboard() {
              </table>
           </div>
         </aside>
+
 
       </div>
     </>
