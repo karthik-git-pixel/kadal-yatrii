@@ -181,7 +181,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, pfzZones, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, addPFZZone }}>
+    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, pfzZones, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, addPFZZone, setUserVesselId }}>
       {children}
     </SimulationContext.Provider>
   );
