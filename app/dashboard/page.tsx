@@ -219,12 +219,20 @@ export default function CommandDashboard() {
           );
           
           getDocs(q).then(snapshot => {
-            const isDuplicate = snapshot.docs.some(d => {
+            const now = Date.now();
+            const vesselName = data.id || "External Hardware";
+            const source = (data.source === 'mpu') ? 'mpu' : 'manual';
+
+            // Check if this is a "duplicate" (same boat, same coords, within last 10 seconds)
+            const isSpam = snapshot.docs.some(d => {
               const dData = d.data();
-              return dData.lat === parseFloat(lat) && (dData.lon === parseFloat(lon) || dData.lng === parseFloat(lon));
+              const dTime = dData.timestamp?.toMillis() || 0;
+              return dData.lat === parseFloat(lat) && 
+                     (dData.lon === parseFloat(lon) || dData.lng === parseFloat(lon)) &&
+                     (now - dTime < 10000); // 10 second span
             });
 
-            if (snapshot.empty || !isDuplicate) {
+            if (!isSpam) {
               const newDoc = {
                 vesselId: vesselId,
                 vesselName: vesselName,
@@ -234,31 +242,32 @@ export default function CommandDashboard() {
                 status: "ACTIVE",
                 timestamp: serverTimestamp()
               };
-              
               addDoc(sosRef, newDoc);
-
-              // Optimistic UI Update: Show it IMMEDIATELY in the UI without waiting for Firestore
-              const optimisticAlert: SOSAlert = {
-                id: 'opt-' + Date.now(),
-                vesselId,
-                vesselName,
-                lat: parseFloat(lat),
-                lon: parseFloat(lon),
-                timestamp: Date.now(),
-                time: new Date().toLocaleTimeString('en-US', { hour12: false }),
-                source: source,
-                status: "ACTIVE"
-              };
-              setLiveSOSQueue(prev => {
-                const filtered = prev.filter(p => p.vesselId !== vesselId);
-                return [optimisticAlert, ...filtered];
-              });
-            } else {
-              // Just update the timestamp for heartbeat
+            } else if (!snapshot.empty) {
+              // Just heartbeat update
               updateDoc(doc(db, 'sos_alerts', snapshot.docs[0].id), {
                 timestamp: serverTimestamp()
               });
             }
+
+            // ALWAYS update the UI state so the user sees the "sequence" (moves boat to top)
+            const optimisticAlert: SOSAlert = {
+              id: 'opt-' + now,
+              vesselId,
+              vesselName,
+              lat: parseFloat(lat),
+              lon: parseFloat(lon),
+              timestamp: now,
+              time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+              source: source,
+              status: "ACTIVE"
+            };
+
+            setLiveSOSQueue(prev => {
+              // Remove old entry for this boat to move NEW one to top
+              const filtered = prev.filter(p => p.vesselId !== vesselId);
+              return [optimisticAlert, ...filtered];
+            });
           });
           
         } catch (e) {
