@@ -127,71 +127,61 @@ export default function CommandDashboard() {
     const qActive = query(sosRef, where("status", "in", ["ACTIVE", "SOS"]));
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
-      const grouped = new Map<string, SOSAlert>();
+      const alerts: SOSAlert[] = [];
       const boatAlertCounts: Record<string, number> = {};
 
-      // Count all docs per boat (including old ones)
+      // First pass to count alerts per boat
       snapshot.forEach(doc => {
         const d = doc.data();
-        const ts = d.timestamp?.toMillis() || 0;
-        if (ts >= oneHourAgo) {
-          boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
-        }
+        boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
       });
 
-      // Keep only the LATEST document per boat
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
         
         if (timestamp >= oneHourAgo) {
-          const existing = grouped.get(data.vesselId);
-          if (!existing || timestamp > existing.timestamp) {
-            grouped.set(data.vesselId, {
-              id: doc.id,
-              vesselId: data.vesselId,
-              vesselName: data.vesselName || data.vesselId,
-              lat: data.lat,
-              lon: data.lon || data.lng,
-              timestamp: timestamp,
-              time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-              source: data.source || 'manual',
-              status: "ACTIVE",
-              alertCount: boatAlertCounts[data.vesselId] || 1
-            });
-          }
+          alerts.push({
+            id: doc.id,
+            vesselId: data.vesselId,
+            vesselName: data.vesselName || data.vesselId,
+            lat: data.lat,
+            lon: data.lon || data.lng,
+            timestamp: timestamp,
+            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+            source: data.source || 'manual',
+            status: "ACTIVE",
+            alertCount: boatAlertCounts[data.vesselId] || 1
+          });
         }
       });
-      setLiveSOSQueue(Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp));
+      setLiveSOSQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
     });
 
     // 2. ACKNOWLEDGED SOS Alerts
     const qAck = query(sosRef, where("status", "==", "ACKNOWLEDGED"));
 
     const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
-      const grouped = new Map<string, SOSAlert>();
+      const alerts: SOSAlert[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
 
         if (timestamp >= oneHourAgo) {
-          const existing = grouped.get(data.vesselId);
-          if (!existing || timestamp > existing.timestamp) {
-            grouped.set(data.vesselId, {
-              id: doc.id,
-              vesselId: data.vesselId,
-              vesselName: data.vesselName || data.vesselId,
-              lat: data.lat,
-              lon: data.lon || data.lng,
-              timestamp: timestamp,
-              time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-              source: data.source || 'manual',
-              status: "ACKNOWLEDGED"
-            });
-          }
+          alerts.push({
+            id: doc.id,
+            vesselId: data.vesselId,
+            vesselName: data.vesselName || data.vesselId,
+            lat: data.lat,
+            lon: data.lon || data.lng,
+            timestamp: timestamp,
+            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+            source: data.source || 'manual',
+            status: "ACKNOWLEDGED"
+          });
         }
       });
-      setLiveDistressQueue(Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp));
+      setLiveDistressQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
     });
 
     return () => {
@@ -252,52 +242,18 @@ export default function CommandDashboard() {
           
           getDocs(q).then(snapshot => {
             const now = Date.now();
-            const vesselName = data.id || "External Hardware";
-            const source = (data.source === 'mpu') ? 'mpu' : 'manual';
 
-            // Check if this is a "duplicate" (same boat, same coords, within last 10 seconds)
-            const isSpam = snapshot.docs.some(d => {
-              const dData = d.data();
-              const dTime = dData.timestamp?.toMillis() || 0;
-              return dData.lat === parseFloat(lat) && 
-                     (dData.lon === parseFloat(lon) || dData.lng === parseFloat(lon)) &&
-                     (now - dTime < 10000); // 10 second span
+            // Always create a new Firestore doc for each SOS press (each is a separate alert)
+            addDoc(sosRef, {
+              vesselId: vesselId,
+              vesselName: vesselName,
+              lat: parseFloat(lat),
+              lng: parseFloat(lon),
+              source: source,
+              status: "ACTIVE",
+              timestamp: serverTimestamp()
             });
-
-            if (!isSpam) {
-              const newDoc = {
-                vesselId: vesselId,
-                vesselName: vesselName,
-                lat: parseFloat(lat),
-                lng: parseFloat(lon),
-                source: source,
-                status: "ACTIVE",
-                timestamp: serverTimestamp()
-              };
-              addDoc(sosRef, newDoc);
-            } else if (!snapshot.empty) {
-              // Just heartbeat update
-              updateDoc(doc(db, 'sos_alerts', snapshot.docs[0].id), {
-                timestamp: serverTimestamp()
-              });
-            }
-
-            // ALWAYS update the UI state so the user sees the "sequence" (moves boat to top)
-            setLiveSOSQueue(prev => {
-              const optimisticAlert: SOSAlert = {
-                id: 'opt-' + now,
-                vesselId,
-                vesselName,
-                lat: parseFloat(lat),
-                lon: parseFloat(lon),
-                timestamp: now,
-                time: new Date().toLocaleTimeString('en-US', { hour12: false }),
-                source: source,
-                status: "ACTIVE",
-                alertCount: (prev.filter(p => p.vesselId === vesselId).length) + 1
-              };
-              return [optimisticAlert, ...prev];
-            });
+            // Firestore onSnapshot will automatically update the UI queue
           });
           
         } catch (e) {
