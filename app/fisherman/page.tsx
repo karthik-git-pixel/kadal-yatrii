@@ -5,12 +5,20 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
+interface HwaAlert {
+  state: string;
+  district: string;
+  alertType: string;
+  message: string;
+  issueDate: string;
+}
+
 export default function FishermanPage() {
   const { state, triggerSOS, resolveSOS, fetchLocationSafety, setUserVesselId } = useSimulation();
   const { vessels, incoisData, userVesselId, marketData, pfzZones } = state;
   const vessel = vessels.find(v => v.id === userVesselId);
   
-  const [activeTab, setActiveTab] = useState<'market' | 'safety'>('safety');
+  const [activeTab, setActiveTab] = useState<'market' | 'safety' | 'intel'>('safety');
   const [selectedMarket, setSelectedMarket] = useState<string>('Vizhinjam');
   
   const [queryLat, setQueryLat] = useState(vessel?.lat.toFixed(4) || '8.3452');
@@ -19,6 +27,13 @@ export default function FishermanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeWarnings, setActiveWarnings] = useState<any[]>([]);
   const [dismissedWarningIds, setDismissedWarningIds] = useState<string[]>([]);
+  const [hwaAlerts, setHwaAlerts] = useState<HwaAlert[]>([]);
+
+  useEffect(() => {
+    fetch('/api/incois/hwa').then(res => res.json()).then(data => {
+      if (data.success) setHwaAlerts(data.alerts);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     const q = query(
@@ -227,6 +242,38 @@ export default function FishermanPage() {
         </div>
       )}
 
+      {activeTab === 'intel' && (
+        <div className="glass-card" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'slideUp 0.4s ease' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>🗺️ കോസ്റ്റൽ ഇന്റൽ (District Alerts)</h2>
+             <div style={{ fontSize: '0.6rem', color: 'var(--accent-blue)', border: '1px solid currentColor', padding: '4px 8px', borderRadius: '4px' }}>INCOIS DATA</div>
+           </div>
+
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {hwaAlerts.map((alert, idx) => {
+                const isDanger = alert.district.includes('[DANGER]') || !alert.message.toLowerCase().includes('no immediate action is required');
+                const cardColor = isDanger ? 'var(--accent-orange)' : '#fdd835'; 
+                const bgFill = isDanger ? 'rgba(255,77,77,0.15)' : 'rgba(253,216,53,0.05)';
+                const mlStatus = isDanger ? 'തീരത്ത് വലിയ തിരമാലകൾ' : 'കടൽ നില പരിശോധിക്കുക';
+
+                return (
+                  <div key={idx} style={{ padding: '15px', background: bgFill, borderRadius: '20px', borderLeft: `6px solid ${cardColor}`, boxShadow: `0 4px 15px rgba(0,0,0,0.2)` }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{alert.district.replace('[DANGER]', '').trim()}</strong>
+                        <span style={{ fontSize: '0.7rem', color: cardColor, fontWeight: 800 }}>{alert.issueDate}</span>
+                     </div>
+                     <div style={{ color: cardColor, fontSize: '1rem', fontWeight: 900, marginBottom: '5px' }}>{mlStatus}</div>
+                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>{alert.message}</div>
+                  </div>
+                );
+              })}
+              {hwaAlerts.length === 0 && (
+                  <div style={{ textAlign: 'center', opacity: 0.5, padding: '40px' }}>No active district warnings.</div>
+              )}
+           </div>
+        </div>
+      )}
+
       {/* FOOTER NAV DOCK */}
       <div className="glass-card" style={{ padding: '14px', display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 20, left: 15, right: 15, zIndex: 1000, borderRadius: '24px', background: 'rgba(13, 19, 33, 0.9)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
 
@@ -257,8 +304,13 @@ export default function FishermanPage() {
         </div>
 
         <div onClick={() => setActiveTab('market')} style={{ color: activeTab === 'market' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'market' ? 'tab-active' : ''}>
-          <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>📊</div>
+          <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>📊</div>
           <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>MARKET</span>
+        </div>
+
+        <div onClick={() => setActiveTab('intel')} style={{ color: activeTab === 'intel' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'intel' ? 'tab-active' : ''}>
+          <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>🗺️</div>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>INTEL</span>
         </div>
       </div>
       
