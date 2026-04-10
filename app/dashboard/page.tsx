@@ -182,16 +182,19 @@ export default function CommandDashboard() {
   useEffect(() => {
     // Listen for ACTIVE SOS alerts in real-time
     const unsubscribeActive = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
-      const activeAlerts: SOSAlert[] = [];
+      const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (["ACTIVE", "SOS"].includes(data.status)) {
+        const timestamp = data.timestamp?.toMillis() || Date.now();
+        
+        // Filter by status and only show recent alerts (last 12 hours)
+        if (["ACTIVE", "SOS"].includes(data.status) && timestamp > twelveHoursAgo) {
           activeAlerts.push({
             id: doc.id,
             vesselId: data.vesselId,
             lat: data.lat,
             lon: data.lon || data.lng, // support both naming conventions
-            timestamp: data.timestamp?.toMillis() || Date.now(),
+            timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             status: "ACTIVE"
           });
@@ -202,16 +205,17 @@ export default function CommandDashboard() {
 
     // Listen for ACKNOWLEDGED alerts in real-time
     const unsubscribeAck = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
-      const ackAlerts: SOSAlert[] = [];
+      const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.status === "ACKNOWLEDGED") {
+        const timestamp = data.timestamp?.toMillis() || Date.now();
+        if (data.status === "ACKNOWLEDGED" && timestamp > twelveHoursAgo) {
           ackAlerts.push({
             id: doc.id,
             vesselId: data.vesselId,
             lat: data.lat,
             lon: data.lon || data.lng,
-            timestamp: data.timestamp?.toMillis() || Date.now(),
+            timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             status: "ACKNOWLEDGED"
           });
@@ -231,11 +235,12 @@ export default function CommandDashboard() {
 
     client.on("connect", () => {
       console.log("MQTT Connected");
-      client.subscribe("kadal/sos");
+      // Use a unique topic for this specific user/prototype to avoid global interference
+      client.subscribe("kadal/sos/karthik_ck");
     });
 
     client.on("message", (topic, message) => {
-      if (topic === "kadal/sos") {
+      if (topic === "kadal/sos/karthik_ck") {
         try {
           const data = JSON.parse(message.toString());
           const lat = data.lat;
