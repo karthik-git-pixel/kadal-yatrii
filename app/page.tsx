@@ -4,109 +4,108 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '50px', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+    <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '50px', padding: '20px', position: 'relative', overflow: 'hidden', background: '#020617' }}>
+
+      {/* Background: Premium Maritime Image */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0,
+        backgroundImage: 'url("/maritime_deep_sea_background_1775851844380.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        opacity: 0.4,
+        filter: 'grayscale(30%)'
+      }} />
+
+      {/* Background: Depth Overlay */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0,
+        background: 'radial-gradient(circle at center, transparent 0%, rgba(2, 6, 23, 0.8) 100%)',
+        pointerEvents: 'none'
+      }} />
 
       {/* Background: Nautical Grid */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0,
         backgroundImage: `
-          linear-gradient(rgba(0,210,255,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,210,255,0.04) 1px, transparent 1px)
+          linear-gradient(rgba(0,210,255,0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,210,255,0.08) 1px, transparent 1px)
         `,
-        backgroundSize: '60px 60px',
-        maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)'
+        backgroundSize: '80px 80px',
+        maskImage: 'radial-gradient(circle at 50% 50%, black 20%, transparent 80%)',
+        opacity: 0.5
       }} />
-
-      {/* Background: Radial Glow */}
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 0,
-        background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,210,255,0.07) 0%, transparent 70%)',
-        pointerEvents: 'none'
-      }} />
-
-      {/* Background: Floating Orbs */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        {[
-          { top: '15%', left: '10%', size: 300, color: 'rgba(0,210,255,0.06)', delay: '0s' },
-          { top: '65%', left: '75%', size: 200, color: 'rgba(0,255,136,0.05)', delay: '3s' },
-          { top: '40%', left: '85%', size: 150, color: 'rgba(0,210,255,0.04)', delay: '6s' },
-          { top: '80%', left: '15%', size: 180, color: 'rgba(0,255,136,0.04)', delay: '2s' },
-        ].map((orb, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            top: orb.top, left: orb.left,
-            width: orb.size, height: orb.size,
-            borderRadius: '50%',
-            background: orb.color,
-            filter: 'blur(60px)',
-            animation: `float 8s ease-in-out infinite`,
-            animationDelay: orb.delay,
-          }} />
-        ))}
-      </div>
 
       {/* Content */}
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
-          padding: '5px 16px', borderRadius: '20px', marginBottom: '20px',
-          background: 'rgba(0,210,255,0.07)', border: '1px solid rgba(0,210,255,0.2)',
-          fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', color: 'var(--accent-blue)'
+          padding: '8px 20px', borderRadius: '30px', marginBottom: '25px',
+          background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.3)',
+          fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.25em', color: 'var(--accent-blue)',
+          backdropFilter: 'blur(10px)'
         }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-blue)', boxShadow: '0 0 6px var(--accent-blue)', display: 'inline-block', animation: 'pulse-dot 2s infinite' }} />
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)', display: 'inline-block', animation: 'pulse-dot 2s infinite' }} />
           NAVIC · LORA · MARITIME INTELLIGENCE
         </div>
 
         <h1 style={{
-          fontSize: 'clamp(2.5rem, 8vw, 5.5rem)',
-          fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
-          background: 'linear-gradient(to bottom, #ffffff 10%, #00d2ff 40%, #00ff88 100%)',
+          fontSize: 'clamp(3rem, 10vw, 6.5rem)',
+          fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 0.9,
+          background: 'linear-gradient(to bottom, #ffffff 30%, #00d2ff 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 30px rgba(0, 210, 255, 0.5))',
-          animation: 'shimmer 3s ease-in-out infinite alternate',
+          filter: 'drop-shadow(0 0 40px rgba(0, 210, 255, 0.6))',
+          animation: 'shimmer 4s ease-in-out infinite alternate',
           marginBottom: '10px'
         }}>
           KADAL YATRI
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.9rem, 2.2vw, 1.15rem)', marginTop: '14px', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto' }}>
-          Empowering small-scale fishers through mesh-networked safety &amp; real-time maritime intelligence.
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', marginTop: '20px', maxWidth: '600px', lineHeight: 1.5, margin: '0 auto', fontWeight: 500 }}>
+          Next-generation safety and market synchronization for the modern fishing fleet.
         </p>
       </div>
 
-      {/* Portal Cards */}
-      <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', width: '100%', maxWidth: '800px', position: 'relative', zIndex: 1 }}>
-        <Link href="/fisherman" style={{ textDecoration: 'none' }}>
-          <div className="glass-card hero-card" style={{ cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '14px', borderColor: 'rgba(0,255,136,0.15)', height: '100%' }}>
-            <div className="card-icon" style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 0 12px rgba(0,255,136,0.5))' }}>🌊</div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--accent-green)', letterSpacing: '0.2em', fontWeight: 800, marginBottom: '6px' }}>FISHERMAN MODE</div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Fisherman App</h2>
+      {/* Portal Cards: Centered for Laptop */}
+      <div className="portal-container" style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="cards-grid" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', 
+          justifyContent: 'center',
+          gap: '30px', 
+          width: '100%'
+        }}>
+          <Link href="/fisherman" style={{ textDecoration: 'none' }}>
+            <div className="glass-card hero-card" style={{ cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '20px', borderColor: 'rgba(0,255,136,0.3)', padding: '40px', background: 'rgba(13, 19, 33, 0.7)' }}>
+              <div className="card-icon" style={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 15px rgba(0,255,136,0.6))' }}>🌊</div>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--accent-green)', letterSpacing: '0.25em', fontWeight: 900, marginBottom: '10px' }}>VESSEL PORTAL</div>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>Fisherman App</h2>
+              </div>
+              <p style={{ fontSize: '0.95rem', opacity: 0.6, lineHeight: 1.6 }}>Real-time sea state, emergency SOS, and landing center price updates.</p>
+              <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-green)', fontWeight: 900, fontSize: '0.9rem' }}>
+                OPEN DASHBOARD <span>→</span>
+              </div>
             </div>
-            <p style={{ fontSize: '0.85rem', opacity: 0.55, lineHeight: 1.6 }}>Mobile-first sea state alerts, SOS button, and live market prices.</p>
-            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--accent-green)', fontWeight: 700, fontSize: '0.8rem' }}>
-              ENTER PORTAL <span>→</span>
-            </div>
-          </div>
-        </Link>
+          </Link>
 
-        <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-          <div className="glass-card hero-card" style={{ cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '14px', borderColor: 'rgba(0,210,255,0.15)', height: '100%' }}>
-            <div className="card-icon" style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 0 12px rgba(0,210,255,0.5))' }}>🛰️</div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--accent-blue)', letterSpacing: '0.2em', fontWeight: 800, marginBottom: '6px' }}>COMMAND MODE</div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Command Center</h2>
+          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+            <div className="glass-card hero-card" style={{ cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '20px', borderColor: 'rgba(0,210,255,0.3)', padding: '40px', background: 'rgba(13, 19, 33, 0.7)' }}>
+              <div className="card-icon" style={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 15px rgba(0,210,255,0.6))' }}>🛰️</div>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', letterSpacing: '0.25em', fontWeight: 900, marginBottom: '10px' }}>COMMAND PORTAL</div>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>Command Center</h2>
+              </div>
+              <p style={{ fontSize: '0.95rem', opacity: 0.6, lineHeight: 1.6 }}>Fleet surveillance, SOS response management, and market broadcasting.</p>
+              <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-blue)', fontWeight: 900, fontSize: '0.9rem' }}>
+                OPEN COMMAND <span>→</span>
+              </div>
             </div>
-            <p style={{ fontSize: '0.85rem', opacity: 0.55, lineHeight: 1.6 }}>Live vessel monitoring, AIS traffic overlay, and rescue dispatch.</p>
-            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--accent-blue)', fontWeight: 700, fontSize: '0.8rem' }}>
-              ENTER HUB <span>→</span>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer style={{ position: 'relative', zIndex: 1, fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', fontWeight: 600, textAlign: 'center', marginTop: 'auto', padding: '20px 0' }}>
-        KADAL YATRI v1.0 · MARITIME SAFETY SYSTEM · KERALA, INDIA
+      <footer style={{ position: 'relative', zIndex: 1, fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center', marginTop: 'auto', padding: '30px 0' }}>
+        KADAL YATRI v1.0 · KERALA MARITIME SAFETY NETWORK
       </footer>
 
       <style jsx>{`
