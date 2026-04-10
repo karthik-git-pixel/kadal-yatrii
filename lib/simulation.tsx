@@ -47,10 +47,7 @@ const INITIAL_VESSELS: Vessel[] = [
   { id: 'v4', name: 'Amrutha', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
 ];
 
-const INITIAL_PFZ: PFZZone[] = [
-  { id: 'pfz1', name: 'Ayala Hotspot', lat: 8.250, lng: 76.750, radius: 2000, confidence: 92 },
-  { id: 'pfz2', name: 'Kera High Yield', lat: 8.450, lng: 76.900, radius: 3000, confidence: 85 },
-];
+
 
 const MOCK_INCOIS: IncoisData = {
   waveHeight: 1.2,
@@ -140,9 +137,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const addPFZZone = useCallback((zone: PFZZone) => {
-    setPfzZones(prev => [zone, ...prev]);
-  }, []);
+
 
   const fetchLocationSafety = useCallback(async (lat: number, lng: number): Promise<IncoisData> => {
     return new Promise((resolve) => {

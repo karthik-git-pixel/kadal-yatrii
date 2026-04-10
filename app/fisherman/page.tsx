@@ -15,7 +15,7 @@ interface HwaAlert {
 
 export default function FishermanPage() {
   const { state, triggerSOS, resolveSOS, fetchLocationSafety, setUserVesselId } = useSimulation();
-  const { vessels, incoisData, userVesselId, marketData, pfzZones } = state;
+  const { vessels, incoisData, userVesselId, marketData } = state;
   const vessel = vessels.find(v => v.id === userVesselId);
   
   const [activeTab, setActiveTab] = useState<'market' | 'safety' | 'intel'>('safety');
