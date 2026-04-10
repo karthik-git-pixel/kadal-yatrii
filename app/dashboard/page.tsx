@@ -183,8 +183,7 @@ export default function CommandDashboard() {
     // Listen for ACTIVE SOS alerts in real-time
     const qActive = query(
       collection(db, 'sos_alerts'), 
-      where("status", "==", "ACTIVE"),
-      orderBy("timestamp", "desc")
+      where("status", "==", "ACTIVE")
     );
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
@@ -201,14 +200,14 @@ export default function CommandDashboard() {
           status: "ACTIVE"
         });
       });
+      activeAlerts.sort((a, b) => b.timestamp - a.timestamp);
       setLiveSOSQueue(activeAlerts);
     });
 
     // Listen for ACKNOWLEDGED alerts in real-time
     const qAck = query(
       collection(db, 'sos_alerts'), 
-      where("status", "==", "ACKNOWLEDGED"),
-      orderBy("timestamp", "desc")
+      where("status", "==", "ACKNOWLEDGED")
     );
 
     const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
@@ -225,6 +224,7 @@ export default function CommandDashboard() {
           status: "ACKNOWLEDGED"
         });
       });
+      ackAlerts.sort((a, b) => b.timestamp - a.timestamp);
       setLiveDistressQueue(ackAlerts);
     });
 
