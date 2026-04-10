@@ -126,7 +126,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
           vesselName: v.name,
           lat: v.lat,
           lng: v.lng,
-          status: 'SOS',
+          status: 'ACTIVE',
           timestamp: serverTimestamp()
         }).catch(err => console.error("Firebase Log Error:", err));
       }
