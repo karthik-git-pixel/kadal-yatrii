@@ -127,21 +127,14 @@ export default function CommandDashboard() {
     const qActive = query(sosRef, where("status", "in", ["ACTIVE", "SOS"]));
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
-      const alerts: SOSAlert[] = [];
-      const boatAlertCounts: Record<string, number> = {};
-
-      // First pass to count alerts per boat
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
-      });
+      const grouped = new Map<string, SOSAlert>();
 
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
         
         if (timestamp >= oneHourAgo) {
-          alerts.push({
+          const alert: SOSAlert = {
             id: doc.id,
             vesselId: data.vesselId,
             vesselName: data.vesselName || data.vesselId,
@@ -150,12 +143,16 @@ export default function CommandDashboard() {
             timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             source: data.source || 'manual',
-            status: "ACTIVE",
-            alertCount: boatAlertCounts[data.vesselId] || 1
-          });
+            status: "ACTIVE"
+          };
+          // Only keep the LATEST alert per boat
+          const existing = grouped.get(data.vesselId);
+          if (!existing || alert.timestamp > existing.timestamp) {
+            grouped.set(data.vesselId, alert);
+          }
         }
       });
-      setLiveSOSQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
+      setLiveSOSQueue(Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp));
     });
 
     // 2. ACKNOWLEDGED SOS Alerts
@@ -241,19 +238,30 @@ export default function CommandDashboard() {
           );
           
           getDocs(q).then(snapshot => {
-            const now = Date.now();
-
-            // Always create a new Firestore doc for each SOS press (each is a separate alert)
-            addDoc(sosRef, {
-              vesselId: vesselId,
-              vesselName: vesselName,
-              lat: parseFloat(lat),
-              lng: parseFloat(lon),
-              source: source,
-              status: "ACTIVE",
-              timestamp: serverTimestamp()
-            });
-            // Firestore onSnapshot will automatically update the UI queue
+            if (snapshot.empty) {
+              // No active alert for this boat — create ONE new alert
+              addDoc(sosRef, {
+                vesselId: vesselId,
+                vesselName: vesselName,
+                lat: parseFloat(lat),
+                lng: parseFloat(lon),
+                source: source,
+                status: "ACTIVE",
+                timestamp: serverTimestamp()
+              });
+              console.log(`✅ New SOS alert created for ${vesselId}`);
+            } else {
+              // Active alert already exists — just update coordinates & timestamp
+              const existingDoc = snapshot.docs[0];
+              updateDoc(doc(db, 'sos_alerts', existingDoc.id), {
+                lat: parseFloat(lat),
+                lng: parseFloat(lon),
+                source: source,
+                timestamp: serverTimestamp()
+              });
+              console.log(`📡 Updated existing alert for ${vesselId}`);
+            }
+            // Firestore onSnapshot handles all UI updates
           });
           
         } catch (e) {
