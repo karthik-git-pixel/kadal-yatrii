@@ -181,51 +181,43 @@ export default function CommandDashboard() {
   // --- MQTT & Firestore Sync ---
   useEffect(() => {
     // Listen for ACTIVE SOS alerts in real-time
-    const qActive = query(
-      collection(db, 'sos_alerts'), 
-      where("status", "in", ["ACTIVE", "SOS"]),
-      orderBy("timestamp", "desc")
-    );
-
-    const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
+    const unsubscribeActive = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
       const activeAlerts: SOSAlert[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        activeAlerts.push({
-          id: doc.id,
-          vesselId: data.vesselId,
-          lat: data.lat,
-          lon: data.lon || data.lng, // support both naming conventions
-          timestamp: data.timestamp?.toMillis() || Date.now(),
-          time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-          status: "ACTIVE"
-        });
+        if (["ACTIVE", "SOS"].includes(data.status)) {
+          activeAlerts.push({
+            id: doc.id,
+            vesselId: data.vesselId,
+            lat: data.lat,
+            lon: data.lon || data.lng, // support both naming conventions
+            timestamp: data.timestamp?.toMillis() || Date.now(),
+            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+            status: "ACTIVE"
+          });
+        }
       });
-      setLiveSOSQueue(activeAlerts);
+      setLiveSOSQueue(activeAlerts.sort((a,b) => b.timestamp - a.timestamp));
     });
 
     // Listen for ACKNOWLEDGED alerts in real-time
-    const qAck = query(
-      collection(db, 'sos_alerts'), 
-      where("status", "==", "ACKNOWLEDGED"),
-      orderBy("timestamp", "desc")
-    );
-
-    const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
+    const unsubscribeAck = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
       const ackAlerts: SOSAlert[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        ackAlerts.push({
-          id: doc.id,
-          vesselId: data.vesselId,
-          lat: data.lat,
-          lon: data.lon || data.lng,
-          timestamp: data.timestamp?.toMillis() || Date.now(),
-          time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-          status: "ACKNOWLEDGED"
-        });
+        if (data.status === "ACKNOWLEDGED") {
+          ackAlerts.push({
+            id: doc.id,
+            vesselId: data.vesselId,
+            lat: data.lat,
+            lon: data.lon || data.lng,
+            timestamp: data.timestamp?.toMillis() || Date.now(),
+            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+            status: "ACKNOWLEDGED"
+          });
+        }
       });
-      setLiveDistressQueue(ackAlerts);
+      setLiveDistressQueue(ackAlerts.sort((a,b) => b.timestamp - a.timestamp));
     });
 
     return () => {

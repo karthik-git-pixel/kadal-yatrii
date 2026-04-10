@@ -117,22 +117,19 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, [vessels, marketData, pfzZones, userVesselId]);
 
   const triggerSOS = useCallback((id: string) => {
-    setVessels(prev => {
-      const v = prev.find(v => v.id === id);
-      if (v) {
-        // Log to Firebase
-        addDoc(collection(db, 'sos_alerts'), {
-          vesselId: v.id,
-          vesselName: v.name,
-          lat: v.lat,
-          lng: v.lng,
-          status: 'ACTIVE',
-          timestamp: serverTimestamp()
-        }).catch(err => console.error("Firebase Log Error:", err));
-      }
-      return prev.map(v => v.id === id ? { ...v, status: 'SOS', meshHops: ['Coast-Station', v.id] } : v);
-    });
-  }, []);
+    const v = vessels.find(v => v.id === id);
+    if (v) {
+      addDoc(collection(db, 'sos_alerts'), {
+        vesselId: v.id,
+        vesselName: v.name,
+        lat: v.lat,
+        lng: v.lng,
+        status: 'ACTIVE',
+        timestamp: serverTimestamp()
+      }).catch(err => console.error("Firebase Log Error:", err));
+    }
+    setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'SOS', meshHops: ['Coast-Station', v.id] } : v));
+  }, [vessels]);
 
   const resolveSOS = useCallback((id: string) => {
     setVessels(prev => prev.map(v => v.id === id ? { ...v, status: 'Active', meshHops: [] } : v));
