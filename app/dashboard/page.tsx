@@ -556,11 +556,11 @@ export default function CommandDashboard() {
                                <strong style={{ color: 'white', fontSize: '0.9rem' }}>Vessel: {sos.vesselId}</strong>
                                <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 ACTIVE</span>
                            </div>
-                           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                               <div>Lat: {sos.lat.toFixed(6)}</div>
-                               <div>Lon: {sos.lon.toFixed(6)}</div>
-                               <div>Time: {sos.time}</div>
-                           </div>
+                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+                                <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
+                                <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
+                                <div>Time: {sos.time}</div>
+                            </div>
                            <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
                        </div>
                     ))}
@@ -575,20 +575,20 @@ export default function CommandDashboard() {
             <h3 style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '0.15em', fontWeight: 800, marginBottom: '5px' }}>TELEMETRY TRACKING</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                {vessels.map((v: Vessel) => (
-                 <div key={v.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', borderLeft: `4px solid ${v.status === 'SOS' ? 'var(--accent-orange)' : 'var(--accent-green)'}`, transition: '0.3s' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                     <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{v.name}</div>
-                     <div style={{ color: v.status === 'SOS' ? 'var(--accent-orange)' : 'var(--accent-green)', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>{v.status.toUpperCase()}</div>
-                   </div>
-                   <div style={{ display: 'flex', gap: '15px', fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
-                     <span>⚡ {Math.floor(v.battery)}%</span>
-                     <span>🌊 {v.speed} kn</span>
-                     <span>🧭 {v.heading}°</span>
-                   </div>
-                   {v.status === 'SOS' && (
-                     <div style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800, marginTop: '5px', background: 'rgba(255,77,77,0.1)', padding: '5px 8px', borderRadius: '4px', wordBreak: 'break-all' }}>📡 ALERT: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
-                   )}
-                 </div>
+                  <div key={v.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', borderLeft: `4px solid ${v.status === 'SOS' ? 'var(--accent-orange)' : 'var(--accent-green)'}`, transition: '0.3s' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{v.name}</div>
+                      <div style={{ color: v.status === 'SOS' ? 'var(--accent-orange)' : 'var(--accent-green)', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>{v.status.toUpperCase()}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
+                      <span>⚡ {Math.floor(v.battery || 0)}%</span>
+                      <span>🌊 {v.speed || 0} kn</span>
+                      <span>🧭 {v.heading || 0}°</span>
+                    </div>
+                    {v.status === 'SOS' && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800, marginTop: '5px', background: 'rgba(255,77,77,0.1)', padding: '5px 8px', borderRadius: '4px', wordBreak: 'break-all' }}>📡 ALERT: {v.lat?.toFixed(4)}, {v.lng?.toFixed(4)}</div>
+                    )}
+                  </div>
                ))}
             </div>
           </div>
@@ -611,7 +611,7 @@ export default function CommandDashboard() {
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
                          <strong style={{ fontSize: '1.1rem' }}>{v.name}</strong><br/>
-                         <div style={{ fontSize: '0.8rem', marginTop: '5px' }}>TELEMETRY: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
+                         <div style={{ fontSize: '0.8rem', marginTop: '5px' }}>TELEMETRY: {v.lat?.toFixed(4)}, {v.lng?.toFixed(4)}</div>
                          <button onClick={() => resolveSOS(v.id)} style={{ width: '100%', marginTop: '12px', background: 'var(--accent-blue)', border: 'none', padding: '8px', borderRadius: '6px', color: 'black', fontWeight: 800, cursor: 'pointer' }}>RESOLVE SOS</button>
                       </div>
                     </Popup>
@@ -654,39 +654,42 @@ export default function CommandDashboard() {
                     </div>
                   </Popup>
                 </Marker>
-                {[...liveSOSQueue, ...liveDistressQueue].map(sos => (
-                  <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
-                    <Popup>
-                      <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
-                         <strong>{sos.vesselId}</strong>
-                         <br/>
-                         Lat: {sos.lat}
-                         <br/>
-                         Lon: {sos.lon}
-                         <br/>
-                         Status: {sos.status}
-                      </div>
-                    </Popup>
-                    <Polyline
-                      key={`sos-line-${sos.vesselId}-${sos.id}`}
-                      positions={[
-                        baseStation,
-                        [sos.lat, sos.lon]
-                      ]}
-                      pathOptions={{
-                        color: sos.status === "ACTIVE" ? "red" : "yellow",
-                        dashArray: "3, 8",
-                        weight: 2,
-                        opacity: 0.9
-                      }}
-                    />
-                    {sos.status === 'ACTIVE' ? (
-                      <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />
-                    ) : (
-                      <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'yellow', fillColor: 'yellow', fillOpacity: 0.2 }} />
-                    )}
-                  </Marker>
-                ))}
+                {[...liveSOSQueue, ...liveDistressQueue].map(sos => {
+                  if (!sos.lat || !sos.lon) return null;
+                  return (
+                    <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
+                      <Popup>
+                        <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
+                           <strong>{sos.vesselId}</strong>
+                           <br/>
+                           Lat: {sos.lat}
+                           <br/>
+                           Lon: {sos.lon}
+                           <br/>
+                           Status: {sos.status}
+                        </div>
+                      </Popup>
+                      <Polyline
+                        key={`sos-line-${sos.vesselId}-${sos.id}`}
+                        positions={[
+                          baseStation,
+                          [sos.lat, sos.lon]
+                        ]}
+                        pathOptions={{
+                          color: sos.status === "ACTIVE" ? "red" : "yellow",
+                          dashArray: "3, 8",
+                          weight: 2,
+                          opacity: 0.9
+                        }}
+                      />
+                      {sos.status === 'ACTIVE' ? (
+                        <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />
+                      ) : (
+                        <Circle center={[sos.lat, sos.lon]} radius={1500} pathOptions={{ color: 'yellow', fillColor: 'yellow', fillOpacity: 0.2 }} />
+                      )}
+                    </Marker>
+                  );
+                })}
               </MapContainer>
             )}
             <div className="weather-overlay">
@@ -717,8 +720,8 @@ export default function CommandDashboard() {
                           <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                          <div>Lat: {sos.lat.toFixed(6)}</div>
-                          <div>Lon: {sos.lon.toFixed(6)}</div>
+                          <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
+                          <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
                           <div>Time: {sos.time}</div>
                        </div>
                     </div>
