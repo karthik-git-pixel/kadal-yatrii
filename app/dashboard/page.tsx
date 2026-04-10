@@ -693,6 +693,22 @@ export default function CommandDashboard() {
                <button onClick={clearDistressQueue} style={{ padding: '6px 12px', background: 'rgba(255,255,0,0.1)', border: '1px solid yellow', color: 'yellow', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}>CLEAR LIST</button>
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
+                 {/* NEW ACTIVE SOS ALERTS */}
+                 {liveSOSQueue.map((sos) => (
+                    <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid #ff4d4d', animation: 'pulseRed 2s infinite' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
+                          <span style={{ fontSize: '0.7rem', color: '#ff4d4d', fontWeight: 800 }}>🔴 ACTIVE SOS</span>
+                       </div>
+                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+                          <div>Lat: {sos.lat.toFixed(6)}</div>
+                          <div>Lon: {sos.lon.toFixed(6)}</div>
+                          <div>Time: {sos.time}</div>
+                       </div>
+                       <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', background: '#ff4d4d', color: 'white', border: 'none', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 15px rgba(255,77,77,0.4)' }}>ACKNOWLEDGE DISTRESS</button>
+                    </div>
+                 ))}
+
                  {liveDistressQueue.map((sos) => (
                     <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
