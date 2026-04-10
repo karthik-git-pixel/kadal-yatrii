@@ -129,14 +129,21 @@ export default function FishermanPage() {
              <div style={{ fontSize: '0.6rem', color: 'var(--accent-blue)', border: '1px solid currentColor', padding: '4px 8px', borderRadius: '4px' }}>LIVE FEED</div>
            </div>
            
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>സ്ഥലം പരിശോധിക്കുക (COORDINATES)</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input value={queryLat} onChange={e => setQueryLat(e.target.value)} placeholder="Lat" style={{ flex: 1, padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }} />
-                <input value={queryLng} onChange={e => setQueryLng(e.target.value)} placeholder="Lng" style={{ flex: 1, padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }} />
-              </div>
-              <button onClick={handleCheckSafety} disabled={isLoading} style={{ width: '100%', padding: '15px', background: 'var(--accent-blue)', border: 'none', borderRadius: '12px', color: '#000', fontWeight: 900, cursor: 'pointer', marginTop: '5px', boxShadow: `0 0 20px ${isLoading ? 'transparent' : 'var(--accent-blue-glow)'}` }}>
-                {isLoading ? 'സിസ്റ്റം പരിശോധിക്കുന്നു...' : 'സുരക്ഷാ പരിശോധന (CHECK)'}
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', border: '1px solid var(--glass-border)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>📍 YOUR LIVE POSITION</div>
+              <div style={{ fontSize: '1.3rem', color: 'white', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{vessel.lat.toFixed(4)}°N, {vessel.lng.toFixed(4)}°E</div>
+              <button 
+                onClick={() => { 
+                  setIsLoading(true); 
+                  fetchLocationSafety(vessel.lat, vessel.lng).then(data => { 
+                    setLiveSafety(data); 
+                    setIsLoading(false); 
+                  }); 
+                }} 
+                disabled={isLoading} 
+                style={{ width: '100%', padding: '15px', background: 'var(--accent-blue)', border: 'none', borderRadius: '12px', color: '#000', fontWeight: 900, cursor: 'pointer', marginTop: '10px', boxShadow: `0 0 20px ${isLoading ? 'transparent' : 'var(--accent-blue-glow)'}` }}
+              >
+                {isLoading ? 'പരിശോധിക്കുന്നു...' : 'നിലവിലെ സുരക്ഷ പരിശോധിക്കുക (CHECK)'}
               </button>
            </div>
 
