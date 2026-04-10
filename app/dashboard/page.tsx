@@ -19,11 +19,12 @@ interface HwaAlert {
 interface SOSAlert {
   id: string;
   vesselId: string;
+  vesselName?: string;
   lat: number;
   lon: number;
   timestamp: number;
   time: string;
-  status: "ACTIVE" | "ACKNOWLEDGED";
+  status: "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED";
 }
 
 interface AISVessel {
@@ -193,6 +194,7 @@ export default function CommandDashboard() {
         activeAlerts.push({
           id: doc.id,
           vesselId: data.vesselId,
+          vesselName: data.vesselName || data.vesselId,
           lat: data.lat,
           lon: data.lon || data.lng, // support both naming conventions
           timestamp: data.timestamp?.toMillis() || Date.now(),
@@ -219,6 +221,7 @@ export default function CommandDashboard() {
         ackAlerts.push({
           id: doc.id,
           vesselId: data.vesselId,
+          vesselName: data.vesselName || data.vesselId,
           lat: data.lat,
           lon: data.lon || data.lng,
           timestamp: data.timestamp?.toMillis() || Date.now(),
@@ -280,9 +283,11 @@ export default function CommandDashboard() {
       .catch(err => console.error("Firebase Update Error:", err));
   };
 
-  const clearDistressQueue = () => {
-    if (window.confirm("Clear all acknowledged SOS alerts?")) {
-      setLiveDistressQueue([]);
+  const clearDistressQueue = async () => {
+    if (window.confirm("Resolve and clear all acknowledged SOS alerts?")) {
+      for (const alert of liveDistressQueue) {
+        await updateDoc(doc(db, 'sos_alerts', alert.id), { status: 'RESOLVED' });
+      }
     }
   };
 
@@ -644,7 +649,7 @@ export default function CommandDashboard() {
                   <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
-                         <strong>{sos.vesselId}</strong>
+                         <strong>{sos.vesselName}</strong>
                          <br/>
                          Lat: {sos.lat}
                          <br/>
@@ -700,7 +705,7 @@ export default function CommandDashboard() {
                  {liveSOSQueue.map((sos) => (
                     <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid #ff4d4d', animation: 'pulseRed 2s infinite' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
+                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselName}</strong>
                           <span style={{ fontSize: '0.7rem', color: '#ff4d4d', fontWeight: 800 }}>🔴 ACTIVE SOS</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
@@ -715,7 +720,7 @@ export default function CommandDashboard() {
                  {liveDistressQueue.map((sos) => (
                     <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
-                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
+                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselName}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
