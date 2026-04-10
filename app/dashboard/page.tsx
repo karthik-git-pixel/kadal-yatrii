@@ -35,8 +35,8 @@ const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { 
 const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false });
 
 export default function CommandDashboard() {
-  const { state, resolveSOS, updateMarketItem, addPFZZone } = useSimulation();
-  const { vessels, incoisData, marketData, pfzZones } = state;
+  const { state, resolveSOS, updateMarketItem } = useSimulation();
+  const { vessels, incoisData, marketData } = state;
 
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
   const [L, setL] = useState<object | null>(null);
@@ -57,7 +57,6 @@ export default function CommandDashboard() {
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
-  const [newPFZ, setNewPFZ] = useState({ lat: '', lng: '', name: '' });
 
   const markets = Array.from(new Set(marketData.map(m => m.port)));
   const filteredMarket = marketData.filter(m => m.port === selectedDashboardMarket);
@@ -264,19 +263,7 @@ export default function CommandDashboard() {
     }
   };
 
-  const handleBroadcastPFZ = () => {
-    if (newPFZ.lat && newPFZ.lng && newPFZ.name) {
-      addPFZZone({
-        id: 'pfz' + Date.now(),
-        name: newPFZ.name,
-        lat: parseFloat(newPFZ.lat),
-        lng: parseFloat(newPFZ.lng),
-        radius: 2500,
-        confidence: 90
-      });
-      setNewPFZ({ lat: '', lng: '', name: '' });
-    }
-  };
+
 
   return (
     <>
@@ -289,27 +276,26 @@ export default function CommandDashboard() {
           gap: 15px;
           background: var(--bg-color);
         }
-        .dashboard-left {
+        .dashboard-left, .dashboard-right {
           display: flex;
           flex-direction: column;
           gap: 15px;
+          height: calc(100vh - 30px);
           overflow-y: auto;
+          scrollbar-width: thin;
+          padding-bottom: 20px;
         }
         .dashboard-center {
           position: relative;
           min-height: 0;
-        }
-        .dashboard-right {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-          overflow-y: auto;
+          height: calc(100vh - 30px);
         }
         .map-wrapper {
           height: 100%;
           padding: 0;
           overflow: hidden;
           border: 1px solid var(--accent-blue-glow);
+          border-radius: 20px;
         }
         .weather-overlay {
           position: absolute;
@@ -546,9 +532,7 @@ export default function CommandDashboard() {
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <Circle center={coastlinePos} radius={500} color="var(--accent-blue)" fillColor="var(--accent-blue)" fillOpacity={0.4} />
 
-                {pfzZones.map((z: PFZZone) => (
-                  <Circle key={z.id} center={[z.lat, z.lng]} radius={z.radius} pathOptions={{ color: 'var(--accent-green)', fillColor: 'var(--accent-green)', fillOpacity: 0.2 }} />
-                ))}
+
 
                 {vessels.map((v: Vessel) => (
                   <Marker key={v.id} position={[v.lat, v.lng]}>
@@ -702,17 +686,7 @@ export default function CommandDashboard() {
             </div>
           </div>
 
-          <div className="glass-card" style={{ background: 'rgba(0,255,136,0.03)', borderColor: 'rgba(0,255,136,0.3)' }}>
-            <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-green)', fontWeight: 800, letterSpacing: '0.1em' }}>🛰️ PFZ SATELLITE BROADCAST</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input value={newPFZ.lat} onChange={e => setNewPFZ({ ...newPFZ, lat: e.target.value })} type="number" placeholder="LAT" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
-                <input value={newPFZ.lng} onChange={e => setNewPFZ({ ...newPFZ, lng: e.target.value })} type="number" placeholder="LNG" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
-              </div>
-              <input value={newPFZ.name} onChange={e => setNewPFZ({ ...newPFZ, name: e.target.value })} placeholder="ZONE NAME (E.G. TUNA HUB)" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontWeight: 600, width: '100%' }} />
-              <button onClick={handleBroadcastPFZ} style={{ width: '100%', background: 'var(--accent-green)', color: 'black', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 20px var(--accent-green-glow)' }}>PUBLISH ZONE</button>
-            </div>
-          </div>
+
 
           <div className="glass-card" style={{ flex: 1, overflowY: 'auto' }}>
             <h3 style={{ fontSize: '0.8rem', marginBottom: '20px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.1em' }}>📈 PRICE BROADCASTER</h3>

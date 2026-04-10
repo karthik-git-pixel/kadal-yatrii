@@ -33,20 +33,10 @@ export interface MarketItem {
   unit: string;
 }
 
-export interface PFZZone {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  radius: number;
-  confidence: number;
-}
-
 interface SimulationState {
   vessels: Vessel[];
   incoisData: IncoisData;
   marketData: MarketItem[];
-  pfzZones: PFZZone[];
   userVesselId: string;
 }
 
@@ -75,7 +65,6 @@ const SimulationContext = createContext<{
   resolveSOS: (id: string) => void;
   fetchLocationSafety: (lat: number, lng: number) => Promise<IncoisData>;
   updateMarketItem: (item: MarketItem) => void;
-  addPFZZone: (zone: PFZZone) => void;
   setUserVesselId: (id: string) => void;
 } | undefined>(undefined);
 
@@ -83,7 +72,6 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   const [vessels, setVessels] = useState<Vessel[]>(INITIAL_VESSELS);
   const [incoisData] = useState<IncoisData>(MOCK_INCOIS);
   const [marketData, setMarketData] = useState<MarketItem[]>(initialMarketData);
-  const [pfzZones, setPfzZones] = useState<PFZZone[]>(INITIAL_PFZ);
   const [userVesselId, setUserVesselId] = useState<string>('');
 
   useEffect(() => {
@@ -93,8 +81,6 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       if (savedV) setVessels(JSON.parse(savedV));
       const savedM = localStorage.getItem('ky_market');
       if (savedM) setMarketData(JSON.parse(savedM));
-      const savedP = localStorage.getItem('ky_pfz');
-      if (savedP) setPfzZones(JSON.parse(savedP));
       const savedId = localStorage.getItem('ky_userVesselId');
       if (savedId) setUserVesselId(savedId);
     }, 0);
@@ -102,7 +88,6 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     const handleS = (e: StorageEvent) => {
       if (e.key === 'ky_vessels' && e.newValue) setVessels(JSON.parse(e.newValue));
       if (e.key === 'ky_market' && e.newValue) setMarketData(JSON.parse(e.newValue));
-      if (e.key === 'ky_pfz' && e.newValue) setPfzZones(JSON.parse(e.newValue));
       if (e.key === 'ky_userVesselId' && e.newValue) setUserVesselId(e.newValue);
     };
     window.addEventListener('storage', handleS);
@@ -112,9 +97,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('ky_vessels', JSON.stringify(vessels));
     localStorage.setItem('ky_market', JSON.stringify(marketData));
-    localStorage.setItem('ky_pfz', JSON.stringify(pfzZones));
     if (userVesselId) localStorage.setItem('ky_userVesselId', userVesselId);
-  }, [vessels, marketData, pfzZones, userVesselId]);
+  }, [vessels, marketData, userVesselId]);
 
   const triggerSOS = useCallback((id: string) => {
     const v = vessels.find(v => v.id === id);
@@ -178,7 +162,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, pfzZones, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, addPFZZone, setUserVesselId }}>
+    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, setUserVesselId }}>
       {children}
     </SimulationContext.Provider>
   );
