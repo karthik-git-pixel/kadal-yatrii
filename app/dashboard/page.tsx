@@ -193,19 +193,37 @@ export default function CommandDashboard() {
 
           console.log("🚨 Valid SOS Received via MQTT:", lat, lon);
           
-          const vesselId = data.id || "MQTT_VESSEL_" + Math.floor(Math.random() * 1000);
-          const vesselName = data.name || "External Hardware";
+          const vesselId = data.id || "HARDWARE_CHIP_01"; // Use a stable ID to prevent duplicates
+          const vesselName = data.name || "External SOS Device";
           
-          addDoc(collection(db, 'sos_alerts'), {
-            vesselId: vesselId,
-            vesselName: vesselName,
-            lat: parseFloat(lat),
-            lng: parseFloat(lon),
-            status: "ACTIVE",
-            timestamp: serverTimestamp()
-          }).then(() => {
-            console.log("✅ SOS logged to Firebase successfully");
-          }).catch(err => console.error("❌ Firebase Log Error:", err));
+          // Deduplicate: Check for existing active alerts for this vessel before adding a new doc
+          const sosRef = collection(db, 'sos_alerts');
+          const q = query(sosRef, where("vesselId", "==", vesselId), where("status", "==", "ACTIVE"));
+          
+          getDocs(q).then(snapshot => {
+            if (snapshot.empty) {
+              addDoc(sosRef, {
+                vesselId: vesselId,
+                vesselName: vesselName,
+                lat: parseFloat(lat),
+                lng: parseFloat(lon),
+                status: "ACTIVE",
+                timestamp: serverTimestamp()
+              }).then(() => {
+                console.log(`✅ New SOS logged for ${vesselName}`);
+              });
+            } else {
+              // Update coordinates of the existing active alert instead of creating a new one
+              const existingId = snapshot.docs[0].id;
+              updateDoc(doc(db, 'sos_alerts', existingId), {
+                lat: parseFloat(lat),
+                lng: parseFloat(lon),
+                timestamp: serverTimestamp()
+              }).then(() => {
+                console.log(`📡 Updated coordinates for active SOS: ${vesselName}`);
+              });
+            }
+          }).catch(err => console.error("❌ Firebase SOS Sync Error:", err));
           
         } catch (e) {
           console.error("❌ Failed to parse MQTT JSON message:", e);
@@ -472,9 +490,15 @@ export default function CommandDashboard() {
 
 
             <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
                 <span style={{ color: 'var(--accent-orange)' }}>[ Active SOS : {activeSOSQueueCount} ]</span>
-                <span style={{ color: 'white' }}>[ Live SOS Queue ]</span>
+                <button onClick={async () => {
+                  if(confirm("Resolve all active SOS alerts?")) {
+                    const q = query(collection(db, 'sos_alerts'), where("status", "in", ["ACTIVE", "SOS"]));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => updateDoc(doc(db, 'sos_alerts', d.id), { status: 'RESOLVED' }));
+                  }
+                }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.6rem', cursor: 'pointer' }}>CLEAR ALL</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
                 {liveSOSQueue.map((sos) => (
