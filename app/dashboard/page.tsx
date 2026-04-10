@@ -1,6 +1,6 @@
 'use client';
 
-import { useSimulation, Vessel, PFZZone } from '@/lib/simulation';
+import { useSimulation, Vessel } from '@/lib/simulation';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
