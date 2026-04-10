@@ -128,19 +128,22 @@ export default function CommandDashboard() {
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
       const grouped = new Map<string, SOSAlert>();
-      const counts: Record<string, number> = {};
+      const boatAlertCounts: Record<string, number> = {};
 
+      // Count all docs per boat (including old ones)
       snapshot.forEach(doc => {
         const d = doc.data();
         const ts = d.timestamp?.toMillis() || 0;
         if (ts >= oneHourAgo) {
-          counts[d.vesselId] = (counts[d.vesselId] || 0) + 1;
+          boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
         }
       });
 
+      // Keep only the LATEST document per boat
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
+        
         if (timestamp >= oneHourAgo) {
           const existing = grouped.get(data.vesselId);
           if (!existing || timestamp > existing.timestamp) {
@@ -154,7 +157,7 @@ export default function CommandDashboard() {
               time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
               source: data.source || 'manual',
               status: "ACTIVE",
-              alertCount: counts[data.vesselId] || 1
+              alertCount: boatAlertCounts[data.vesselId] || 1
             });
           }
         }
@@ -170,6 +173,7 @@ export default function CommandDashboard() {
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
+
         if (timestamp >= oneHourAgo) {
           const existing = grouped.get(data.vesselId);
           if (!existing || timestamp > existing.timestamp) {
