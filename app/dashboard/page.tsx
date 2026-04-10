@@ -8,6 +8,14 @@ import mqtt from 'mqtt';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, onSnapshot, orderBy } from 'firebase/firestore';
 
+interface HwaAlert {
+  state: string;
+  district: string;
+  alertType: string;
+  message: string;
+  issueDate: string;
+}
+
 interface SOSAlert {
   id: string;
   vesselId: string;
@@ -54,6 +62,26 @@ export default function CommandDashboard() {
   const markets = Array.from(new Set(marketData.map(m => m.port)));
   const filteredMarket = marketData.filter(m => m.port === selectedDashboardMarket);
 
+  const [hwaAlerts, setHwaAlerts] = useState<HwaAlert[]>([]);
+
+  useEffect(() => {
+    fetch('/api/incois/hwa').then(res => res.json()).then(data => {
+      if (data.success) setHwaAlerts(data.alerts);
+    }).catch(console.error);
+  }, []);
+
+  const handleBroadcastWarning = (alert: HwaAlert) => {
+    addDoc(collection(db, 'coastal_warnings'), {
+      district: alert.district,
+      message: alert.message,
+      alertType: alert.alertType,
+      active: true,
+      timestamp: serverTimestamp()
+    }).then(() => {
+      window.alert('Warning broadcasted to all fishermen via NavIC-LORA overlay!');
+    }).catch(console.error);
+  };
+
   useEffect(() => {
     import('leaflet').then(mod => {
       const DefaultIcon = mod.icon({
@@ -67,60 +95,74 @@ export default function CommandDashboard() {
     });
   }, []);
 
-  // --- AISStream.io Integration ---
+  // --- AISStream.io Proxy Integration ---
   useEffect(() => {
-    if (!showAIS) return;
+    if (!showAIS) {
+      setAisStatus("CONNECTING");
+      return;
+    }
 
-    const socket = new WebSocket("wss://stream.aisstream.io/v0/stream");
-    
-    socket.onopen = () => {
-      setAisStatus("LIVE");
-      console.log("AISStream Connected");
-      const subscriptionMessage = {
-        APIKey: process.env.NEXT_PUBLIC_AISSTREAM_API_KEY,
-        BoundingBoxes: [[[5.0, 70.0], [15.0, 80.0]]], // Much larger area (Arabian Sea / West Coast)
-        FilterMessageTypes: ["PositionReport"]
-      };
-      socket.send(JSON.stringify(subscriptionMessage));
-    };
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.MessageType === "PositionReport" || data.Message?.PositionReport) {
+    const connect = () => {
+      setAisStatus("CONNECTING");
+      // Connect to our secure backend proxy instead of directly to AISStream
+      eventSource = new EventSource("/api/ais");
+
+      eventSource.onopen = () => {
         setAisStatus("LIVE");
-        const report = data.Message.PositionReport;
-        const metadata = data.MetaData;
-        
-        setAisVessels(prev => {
-          const newMap = new Map(prev);
-          newMap.set(metadata.MMSI, {
-            mmsi: metadata.MMSI,
-            name: metadata.ShipName?.trim() || `AIS_${metadata.MMSI}`,
-            lat: metadata.Latitude,
-            lon: metadata.Longitude,
-            speed: report.Sog,
-            course: report.Cog,
-            lastUpdate: Date.now()
-          });
+        console.log("AIS Proxy Connected");
+      };
 
-          // Cleanup old AIS data (silent vessels > 10 mins)
-          const timeout = 600000;
-          for (let [mmsi, v] of newMap.entries()) {
-             if (Date.now() - v.lastUpdate > timeout) newMap.delete(mmsi);
-          }
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
           
-          return newMap;
-        });
-      }
+          if (data.MessageType === "PositionReport" || data.Message?.PositionReport) {
+            setAisStatus("LIVE");
+            const report = data.Message.PositionReport;
+            const metadata = data.MetaData;
+            
+            setAisVessels(prev => {
+              const newMap = new Map(prev);
+              newMap.set(metadata.MMSI, {
+                mmsi: metadata.MMSI,
+                name: metadata.ShipName?.trim() || `AIS_${metadata.MMSI}`,
+                lat: metadata.Latitude,
+                lon: metadata.Longitude,
+                speed: report.Sog,
+                course: report.Cog,
+                lastUpdate: Date.now()
+              });
+
+              // Cleanup old AIS data (silent vessels > 10 mins)
+              const timeout = 600000;
+              for (let [mmsi, v] of newMap.entries()) {
+                 if (Date.now() - v.lastUpdate > timeout) newMap.delete(mmsi);
+              }
+              
+              return newMap;
+            });
+          }
+        } catch (err) {
+          console.error("AIS Parse Error:", err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn("AIS Proxy disconnected, retrying in 5s...", err);
+        setAisStatus("ERROR");
+        eventSource?.close();
+        reconnectTimeout = setTimeout(connect, 5000);
+      };
     };
 
-    socket.onerror = (err) => {
-      console.error("AISStream Error:", err);
-      setAisStatus("ERROR");
-    };
+    connect();
 
-    socket.onclose = () => {
-      if (showAIS) setAisStatus("CONNECTING");
+    return () => {
+      if (eventSource) eventSource.close();
+      clearTimeout(reconnectTimeout);
     };
   }, [showAIS]);
 
@@ -606,6 +648,42 @@ export default function CommandDashboard() {
                  )}
              </div>
           </div>
+
+           {/* HIGH WAVE / INCOIS NOTIFICATIONS */}
+           <div className="glass-card" style={{ background: 'rgba(255,0,0,0.03)', borderColor: 'rgba(255,0,0,0.3)', marginBottom: '15px' }}>
+              <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-orange)', fontWeight: 800, letterSpacing: '0.1em' }}>⚠️ INCOIS HIGH WAVE ADVISORIES</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto' }}>
+                 {hwaAlerts.map((alert, idx) => {
+                   const isDanger = alert.district.includes('[DANGER]') || !alert.message.toLowerCase().includes('no immediate action is required');
+                   const cardColor = isDanger ? 'var(--accent-orange)' : '#fdd835'; // red/orange for danger, yellow for watch
+                   const bgFill = isDanger ? 'rgba(255,77,77,0.15)' : 'rgba(253,216,53,0.05)';
+
+                   return (
+                     <div key={idx} style={{ padding: '15px', background: bgFill, borderRadius: '16px', borderLeft: `4px solid ${cardColor}`, position: 'relative' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
+                           <strong style={{ fontSize: '0.9rem', color: '#fff' }}>{alert.district}</strong>
+                           <span style={{ fontSize: '0.7rem', color: cardColor, fontWeight: 800 }}>{alert.issueDate}</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: cardColor, fontWeight: 800, marginBottom: '5px' }}>{alert.alertType}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>{alert.message}</div>
+                        {isDanger && (
+                          <button onClick={() => handleBroadcastWarning(alert)} style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--accent-orange)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer', fontSize: '0.75rem', boxShadow: '0 0 15px rgba(255,100,100,0.4)', animation: 'pulseRed 1.5s infinite' }}>
+                            ⚠️ FAST BROADCAST DANGER TO FLEET
+                          </button>
+                        )}
+                        {!isDanger && (
+                          <button onClick={() => handleBroadcastWarning(alert)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', background: 'transparent', border: `1px solid ${cardColor}`, color: cardColor, fontWeight: 700, cursor: 'pointer', fontSize: '0.65rem' }}>
+                            Notify Fleet (Advisory)
+                          </button>
+                        )}
+                     </div>
+                   );
+                 })}
+                 {hwaAlerts.length === 0 && (
+                     <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '20px' }}>No severe weather alerts for Kerala coast.</div>
+                 )}
+              </div>
+           </div>
 
           <div className="glass-card" style={{ background: 'rgba(0,255,136,0.03)', borderColor: 'rgba(0,255,136,0.3)' }}>
              <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-green)', fontWeight: 800, letterSpacing: '0.1em' }}>🛰️ PFZ SATELLITE BROADCAST</h3>

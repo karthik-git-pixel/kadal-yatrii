@@ -1,7 +1,9 @@
 'use client';
 
 import { useSimulation, IncoisData } from '@/lib/simulation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 export default function FishermanPage() {
   const { state, triggerSOS, resolveSOS, fetchLocationSafety } = useSimulation();
@@ -15,8 +17,27 @@ export default function FishermanPage() {
   const [queryLng, setQueryLng] = useState(vessel?.lng.toFixed(4) || '76.8921');
   const [liveSafety, setLiveSafety] = useState<IncoisData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeWarnings, setActiveWarnings] = useState<any[]>([]);
+  const [dismissedWarningIds, setDismissedWarningIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'coastal_warnings'),
+      where('active', '==', true),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const warnings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveWarnings(warnings);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   if (!vessel) return <div style={{ color: 'white', padding: '100px', textAlign: 'center' }}>⚙️ Syncing NavIC telemetry...</div>;
+
+  const visibleWarnings = activeWarnings.filter(w => !dismissedWarningIds.includes(w.id));
 
   const markets = Array.from(new Set(marketData.map(m => m.port)));
   const filteredMarket = marketData.filter(m => m.port === selectedMarket);
@@ -48,7 +69,7 @@ export default function FishermanPage() {
   };
 
   return (
-    <main style={{ padding: '15px', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', height: '100vh', overflowY: 'auto', paddingBottom: '120px' }}>
+    <main style={{ padding: '15px', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', height: '100vh', overflowY: 'auto', paddingBottom: '120px', position: 'relative' }}>
       
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 5px' }}>
@@ -71,6 +92,38 @@ export default function FishermanPage() {
 
       {activeTab === 'safety' && (
         <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', animation: 'slideUp 0.4s ease' }}>
+           
+           {visibleWarnings.length > 0 && (
+             <div style={{ background: 'rgba(255, 0, 0, 0.2)', border: '2px solid red', padding: '20px', borderRadius: '16px', animation: 'flashRedLight 1.5s infinite alternate', boxShadow: '0 0 20px rgba(255,0,0,0.3)', marginBottom: '10px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                 <span style={{ fontSize: '2rem' }}>⚠️</span>
+                 <h2 style={{ color: 'red', fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>DANGER DIRECTIVE</h2>
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                 {visibleWarnings.map(w => {
+                   const dist = w.district.split('-')[0].trim();
+                   const isDanger = w.district.includes('[DANGER]') || w.alertType?.includes('WARNING');
+                   const engMsg = isDanger ? 'STAY AWAY FROM SEA' : 'SWELL SURGE WATCH';
+                   const mlMsg = isDanger ? 'അപായസൂചന: കടലിൽ പോകരുത്' : 'ജാഗ്രത: തിരമാലകൾ ശക്തമാണ്';
+
+                   return (
+                     <div key={w.id} style={{ background: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                       <div style={{ color: '#ffeb3b', fontSize: '1.2rem', fontWeight: 900, marginBottom: '8px' }}>{dist} COAST</div>
+                       <div style={{ color: 'red', fontSize: '1.4rem', fontWeight: 900, marginBottom: '5px' }}>{mlMsg}</div>
+                       <div style={{ color: 'white', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em' }}>{engMsg}</div>
+                       
+                       <button 
+                         onClick={() => setDismissedWarningIds(prev => [...prev, w.id])} 
+                         style={{ background: 'transparent', border: '1px solid #ffeb3b', color: '#ffeb3b', padding: '8px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', marginTop: '12px', width: '100%' }}>
+                         മനസ്സിലായി (CLEAR)
+                       </button>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
+
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>🌊 INCOIS കടൽ നില</h2>
              <div style={{ fontSize: '0.6rem', color: 'var(--accent-blue)', border: '1px solid currentColor', padding: '4px 8px', borderRadius: '4px' }}>LIVE FEED</div>
@@ -142,9 +195,9 @@ export default function FishermanPage() {
       {/* FOOTER NAV DOCK */}
       <div className="glass-card" style={{ padding: '14px', display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 20, left: 15, right: 15, zIndex: 1000, borderRadius: '24px', background: 'rgba(13, 19, 33, 0.9)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
 
-        <div onClick={() => setActiveTab('safety')} style={{ color: activeTab === 'safety' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1 }} className={activeTab === 'safety' ? 'tab-active' : ''}>
-          <div style={{ fontSize: '1.6rem', marginBottom: '4px' }}>🌊</div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em' }}>SAFETY</span>
+        <div onClick={() => setActiveTab('safety')} style={{ color: activeTab === 'safety' ? 'var(--accent-blue)' : 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', transition: '0.3s', flex: 1, position: 'relative' }} className={activeTab === 'safety' ? 'tab-active' : ''}>
+          <div style={{ fontSize: '1.6rem', marginBottom: '4px', filter: visibleWarnings.length > 0 ? 'drop-shadow(0 0 8px red) sepia(1) hue-rotate(-50deg) saturate(5)' : 'none' }}>🌊</div>
+          <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.1em', color: visibleWarnings.length > 0 ? '#ff4d4d' : 'inherit', textShadow: visibleWarnings.length > 0 ? '0 0 10px rgba(255,0,0,0.8)' : 'none' }}>SAFETY</span>
         </div>
 
         <div onClick={handleSOS} style={{ textAlign: 'center', cursor: 'pointer', flex: 1, position: 'relative', top: '-15px' }}>
@@ -177,6 +230,8 @@ export default function FishermanPage() {
       <style jsx>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes flashRedLight { 0% { background: rgba(255,0,0,0.1); border-color: rgba(255,0,0,0.5); } 100% { background: rgba(255,0,0,0.3); border-color: red; } }
+        @keyframes pulseRed { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
       `}</style>
     </main>
   );
