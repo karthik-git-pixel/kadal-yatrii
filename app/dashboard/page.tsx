@@ -19,12 +19,11 @@ interface HwaAlert {
 interface SOSAlert {
   id: string;
   vesselId: string;
-  vesselName?: string;
   lat: number;
   lon: number;
   timestamp: number;
   time: string;
-  status: "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED";
+  status: "ACTIVE" | "ACKNOWLEDGED";
 }
 
 interface AISVessel {
@@ -184,7 +183,8 @@ export default function CommandDashboard() {
     // Listen for ACTIVE SOS alerts in real-time
     const qActive = query(
       collection(db, 'sos_alerts'), 
-      where("status", "==", "ACTIVE")
+      where("status", "==", "ACTIVE"),
+      orderBy("timestamp", "desc")
     );
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
@@ -194,7 +194,6 @@ export default function CommandDashboard() {
         activeAlerts.push({
           id: doc.id,
           vesselId: data.vesselId,
-          vesselName: data.vesselName || data.vesselId,
           lat: data.lat,
           lon: data.lon || data.lng, // support both naming conventions
           timestamp: data.timestamp?.toMillis() || Date.now(),
@@ -202,16 +201,14 @@ export default function CommandDashboard() {
           status: "ACTIVE"
         });
       });
-      activeAlerts.sort((a, b) => b.timestamp - a.timestamp);
       setLiveSOSQueue(activeAlerts);
-    }, (error) => {
-      console.error("Firestore SOS Listener Error:", error);
     });
 
     // Listen for ACKNOWLEDGED alerts in real-time
     const qAck = query(
       collection(db, 'sos_alerts'), 
-      where("status", "==", "ACKNOWLEDGED")
+      where("status", "==", "ACKNOWLEDGED"),
+      orderBy("timestamp", "desc")
     );
 
     const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
@@ -221,7 +218,6 @@ export default function CommandDashboard() {
         ackAlerts.push({
           id: doc.id,
           vesselId: data.vesselId,
-          vesselName: data.vesselName || data.vesselId,
           lat: data.lat,
           lon: data.lon || data.lng,
           timestamp: data.timestamp?.toMillis() || Date.now(),
@@ -229,7 +225,6 @@ export default function CommandDashboard() {
           status: "ACKNOWLEDGED"
         });
       });
-      ackAlerts.sort((a, b) => b.timestamp - a.timestamp);
       setLiveDistressQueue(ackAlerts);
     });
 
@@ -283,11 +278,9 @@ export default function CommandDashboard() {
       .catch(err => console.error("Firebase Update Error:", err));
   };
 
-  const clearDistressQueue = async () => {
-    if (window.confirm("Resolve and clear all acknowledged SOS alerts?")) {
-      for (const alert of liveDistressQueue) {
-        await updateDoc(doc(db, 'sos_alerts', alert.id), { status: 'RESOLVED' });
-      }
+  const clearDistressQueue = () => {
+    if (window.confirm("Clear all acknowledged SOS alerts?")) {
+      setLiveDistressQueue([]);
     }
   };
 
@@ -558,6 +551,32 @@ export default function CommandDashboard() {
                   {showAIS ? 'LIVE ON' : 'PAUSED'}
                 </button>
             </div>
+
+            <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
+                    <span style={{ color: 'var(--accent-orange)' }}>[ Active SOS : {activeSOSQueueCount} ]</span>
+                    <span style={{ color: 'white' }}>[ Live SOS Queue ]</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+                    {liveSOSQueue.map((sos) => (
+                       <div key={sos.id} style={{ padding: '12px', background: 'rgba(255,77,77,0.1)', borderRadius: '10px', borderLeft: '4px solid red' }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                               <strong style={{ color: 'white', fontSize: '0.9rem' }}>Vessel: {sos.vesselId}</strong>
+                               <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 ACTIVE</span>
+                           </div>
+                           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+                               <div>Lat: {sos.lat.toFixed(6)}</div>
+                               <div>Lon: {sos.lon.toFixed(6)}</div>
+                               <div>Time: {sos.time}</div>
+                           </div>
+                           <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
+                       </div>
+                    ))}
+                    {liveSOSQueue.length === 0 && (
+                        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '10px' }}>QUEUE EMPTY</div>
+                    )}
+                </div>
+            </div>
           </div>
 
           <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -583,7 +602,6 @@ export default function CommandDashboard() {
           </div>
         </aside>
 
-
         {/* CENTER: SURVEILLANCE MAP */}
         <main className={`dashboard-center ${activeTab === 'map' ? 'active' : ''}`}>
           <div className="glass-card map-wrapper">
@@ -596,7 +614,7 @@ export default function CommandDashboard() {
                   <Circle key={z.id} center={[z.lat, z.lng]} radius={z.radius} pathOptions={{ color: 'var(--accent-green)', fillColor: 'var(--accent-green)', fillOpacity: 0.2 }} />
                 ))}
 
-                {vessels.filter(v => v.lat != null && v.lng != null).map((v: Vessel) => (
+                {vessels.map((v: Vessel) => (
                   <Marker key={v.id} position={[v.lat, v.lng]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
@@ -608,14 +626,14 @@ export default function CommandDashboard() {
                     {v.status === 'SOS' && <Circle center={[v.lat, v.lng]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />}
                   </Marker>
                 ))}
-                {sosVessels.filter(v => v.lat != null && v.lng != null).map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
+                {sosVessels.map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
                 
                 {/* AIS WORLD TRAFFIC */}
-                {Array.from(aisVessels.values()).filter(v => v.lat != null && v.lon != null).map((v: AISVessel) => (
+                {Array.from(aisVessels.values()).map((v: AISVessel) => (
                   <Marker 
                     key={`ais-${v.mmsi}`} 
                     position={[v.lat, v.lon]}
-                    icon={(L && (L as any).divIcon) ? (L as any).divIcon({
+                    icon={L ? (L as any).divIcon({
                       className: 'ais-marker',
                       html: `<div style="transform: rotate(${v.course}deg); font-size: 1.2rem; color: #3b82f6; text-shadow: 0 0 5px rgba(0,0,0,0.5)">🚢</div>`,
                       iconSize: [20, 20],
@@ -644,12 +662,11 @@ export default function CommandDashboard() {
                     </div>
                   </Popup>
                 </Marker>
-                {/* LIVE AND ACKNOWLEDGED SOS SIGNALS FROM FIRESTORE */}
-                {[...liveSOSQueue, ...liveDistressQueue].filter(sos => sos.lat != null && sos.lon != null).map(sos => (
+                {[...liveSOSQueue, ...liveDistressQueue].map(sos => (
                   <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
-                         <strong>{sos.vesselName}</strong>
+                         <strong>{sos.vesselId}</strong>
                          <br/>
                          Lat: {sos.lat}
                          <br/>
@@ -701,31 +718,15 @@ export default function CommandDashboard() {
                <button onClick={clearDistressQueue} style={{ padding: '6px 12px', background: 'rgba(255,255,0,0.1)', border: '1px solid yellow', color: 'yellow', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}>CLEAR LIST</button>
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
-                 {/* NEW ACTIVE SOS ALERTS */}
-                 {liveSOSQueue.map((sos) => (
-                    <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid #ff4d4d', animation: 'pulseRed 2s infinite' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselName}</strong>
-                          <span style={{ fontSize: '0.7rem', color: '#ff4d4d', fontWeight: 800 }}>🔴 ACTIVE SOS</span>
-                       </div>
-                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                          <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
-                          <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
-                          <div>Time: {sos.time}</div>
-                       </div>
-                       <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', background: '#ff4d4d', color: 'white', border: 'none', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 15px rgba(255,77,77,0.4)' }}>ACKNOWLEDGE DISTRESS</button>
-                    </div>
-                 ))}
-
                  {liveDistressQueue.map((sos) => (
                     <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
-                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselName}</strong>
+                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                          <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
-                          <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
+                          <div>Lat: {sos.lat.toFixed(6)}</div>
+                          <div>Lon: {sos.lon.toFixed(6)}</div>
                           <div>Time: {sos.time}</div>
                        </div>
                     </div>
@@ -737,7 +738,7 @@ export default function CommandDashboard() {
                          <strong style={{ fontSize: '1rem', color: '#fff' }}>{v.name}</strong>
                          <span style={{ fontSize: '0.7rem', color: 'var(--accent-orange)', fontWeight: 800 }}>D: {getDistance(v.lat, v.lng, coastlinePos[0], coastlinePos[1])}km</span>
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat?.toFixed(4) || 'N/A'}, {v.lng?.toFixed(4) || 'N/A'}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>TELEMETRY: {v.lat.toFixed(4)}, {v.lng.toFixed(4)}</div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                          <button style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--accent-orange)', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>DISPATCH</button>
                          <button onClick={() => resolveSOS(v.id)} style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white', cursor: 'pointer' }}>❌</button>
@@ -745,10 +746,10 @@ export default function CommandDashboard() {
                    </div>
                  ))}
 
-                 {liveDistressQueue.length === 0 && sosVessels.length === 0 && liveSOSQueue.length === 0 && (
+                 {liveDistressQueue.length === 0 && sosVessels.length === 0 && (
                      <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '20px' }}>SAFE SECTOR.</div>
                  )}
-            </div>
+             </div>
           </div>
 
            {/* HIGH WAVE / INCOIS NOTIFICATIONS */}
@@ -787,6 +788,18 @@ export default function CommandDashboard() {
               </div>
            </div>
 
+          <div className="glass-card" style={{ background: 'rgba(0,255,136,0.03)', borderColor: 'rgba(0,255,136,0.3)' }}>
+             <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-green)', fontWeight: 800, letterSpacing: '0.1em' }}>🛰️ PFZ SATELLITE BROADCAST</h3>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <input value={newPFZ.lat} onChange={e => setNewPFZ({...newPFZ, lat: e.target.value})} type="number" placeholder="LAT" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
+                  <input value={newPFZ.lng} onChange={e => setNewPFZ({...newPFZ, lng: e.target.value})} type="number" placeholder="LNG" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
+                </div>
+                <input value={newPFZ.name} onChange={e => setNewPFZ({...newPFZ, name: e.target.value})} placeholder="ZONE NAME (E.G. TUNA HUB)" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontWeight: 600, width: '100%' }} />
+                <button onClick={handleBroadcastPFZ} style={{ width: '100%', background: 'var(--accent-green)', color: 'black', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 20px var(--accent-green-glow)' }}>PUBLISH ZONE</button>
+             </div>
+          </div>
+
           <div className="glass-card" style={{ flex: 1, overflowY: 'auto' }}>
              <h3 style={{ fontSize: '0.8rem', marginBottom: '20px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.1em' }}>📈 PRICE BROADCASTER</h3>
              <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(0,210,255,0.03)', borderRadius: '16px', border: '1px solid var(--accent-blue-glow)' }}>
@@ -816,8 +829,6 @@ export default function CommandDashboard() {
              </table>
           </div>
         </aside>
-
-
       </div>
     </>
   );
