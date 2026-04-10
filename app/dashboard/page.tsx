@@ -181,38 +181,45 @@ export default function CommandDashboard() {
 
   // --- MQTT & Firestore Sync ---
   useEffect(() => {
-    // Listen for ACTIVE SOS alerts in real-time
     const unsubscribeActive = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
+      const groupedAlerts = new Map<string, SOSAlert>();
       const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
         
-        // Filter by status and only show recent alerts (last 12 hours)
         if (["ACTIVE", "SOS"].includes(data.status) && timestamp > twelveHoursAgo) {
-          activeAlerts.push({
+          const alert: SOSAlert = {
             id: doc.id,
             vesselId: data.vesselId,
             vesselName: data.vesselName || data.vesselId,
             lat: data.lat,
-            lon: data.lon || data.lng, // support both naming conventions
+            lon: data.lon || data.lng,
             timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             status: "ACTIVE"
-          });
+          };
+
+          // Only keep the latest alert for each vessel
+          const existing = groupedAlerts.get(data.vesselId);
+          if (!existing || alert.timestamp > existing.timestamp) {
+            groupedAlerts.set(data.vesselId, alert);
+          }
         }
       });
-      setLiveSOSQueue(activeAlerts.sort((a,b) => b.timestamp - a.timestamp));
+      setLiveSOSQueue(Array.from(groupedAlerts.values()).sort((a,b) => b.timestamp - a.timestamp));
     });
 
-    // Listen for ACKNOWLEDGED alerts in real-time
     const unsubscribeAck = onSnapshot(collection(db, 'sos_alerts'), (snapshot) => {
+      const groupedAck = new Map<string, SOSAlert>();
       const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
         if (data.status === "ACKNOWLEDGED" && timestamp > twelveHoursAgo) {
-          ackAlerts.push({
+          const alert: SOSAlert = {
             id: doc.id,
             vesselId: data.vesselId,
             vesselName: data.vesselName || data.vesselId,
@@ -221,10 +228,15 @@ export default function CommandDashboard() {
             timestamp: timestamp,
             time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
             status: "ACKNOWLEDGED"
-          });
+          };
+
+          const existing = groupedAck.get(data.vesselId);
+          if (!existing || alert.timestamp > existing.timestamp) {
+            groupedAck.set(data.vesselId, alert);
+          }
         }
       });
-      setLiveDistressQueue(ackAlerts.sort((a,b) => b.timestamp - a.timestamp));
+      setLiveDistressQueue(Array.from(groupedAck.values()).sort((a,b) => b.timestamp - a.timestamp));
     });
 
     return () => {
