@@ -127,61 +127,67 @@ export default function CommandDashboard() {
     const qActive = query(sosRef, where("status", "in", ["ACTIVE", "SOS"]));
 
     const unsubscribeActive = onSnapshot(qActive, (snapshot) => {
-      const alerts: SOSAlert[] = [];
-      const boatAlertCounts: Record<string, number> = {};
+      const grouped = new Map<string, SOSAlert>();
+      const counts: Record<string, number> = {};
 
-      // First pass to count alerts per boat
       snapshot.forEach(doc => {
         const d = doc.data();
-        boatAlertCounts[d.vesselId] = (boatAlertCounts[d.vesselId] || 0) + 1;
+        const ts = d.timestamp?.toMillis() || 0;
+        if (ts >= oneHourAgo) {
+          counts[d.vesselId] = (counts[d.vesselId] || 0) + 1;
+        }
       });
 
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
-        
         if (timestamp >= oneHourAgo) {
-          alerts.push({
-            id: doc.id,
-            vesselId: data.vesselId,
-            vesselName: data.vesselName || data.vesselId,
-            lat: data.lat,
-            lon: data.lon || data.lng,
-            timestamp: timestamp,
-            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-            source: data.source || 'manual',
-            status: "ACTIVE",
-            alertCount: boatAlertCounts[data.vesselId] || 1
-          });
+          const existing = grouped.get(data.vesselId);
+          if (!existing || timestamp > existing.timestamp) {
+            grouped.set(data.vesselId, {
+              id: doc.id,
+              vesselId: data.vesselId,
+              vesselName: data.vesselName || data.vesselId,
+              lat: data.lat,
+              lon: data.lon || data.lng,
+              timestamp: timestamp,
+              time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+              source: data.source || 'manual',
+              status: "ACTIVE",
+              alertCount: counts[data.vesselId] || 1
+            });
+          }
         }
       });
-      setLiveSOSQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
+      setLiveSOSQueue(Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp));
     });
 
     // 2. ACKNOWLEDGED SOS Alerts
     const qAck = query(sosRef, where("status", "==", "ACKNOWLEDGED"));
 
     const unsubscribeAck = onSnapshot(qAck, (snapshot) => {
-      const alerts: SOSAlert[] = [];
+      const grouped = new Map<string, SOSAlert>();
       snapshot.forEach((doc) => {
         const data = doc.data();
         const timestamp = data.timestamp?.toMillis() || Date.now();
-
         if (timestamp >= oneHourAgo) {
-          alerts.push({
-            id: doc.id,
-            vesselId: data.vesselId,
-            vesselName: data.vesselName || data.vesselId,
-            lat: data.lat,
-            lon: data.lon || data.lng,
-            timestamp: timestamp,
-            time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
-            source: data.source || 'manual',
-            status: "ACKNOWLEDGED"
-          });
+          const existing = grouped.get(data.vesselId);
+          if (!existing || timestamp > existing.timestamp) {
+            grouped.set(data.vesselId, {
+              id: doc.id,
+              vesselId: data.vesselId,
+              vesselName: data.vesselName || data.vesselId,
+              lat: data.lat,
+              lon: data.lon || data.lng,
+              timestamp: timestamp,
+              time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+              source: data.source || 'manual',
+              status: "ACKNOWLEDGED"
+            });
+          }
         }
       });
-      setLiveDistressQueue(alerts.sort((a, b) => b.timestamp - a.timestamp));
+      setLiveDistressQueue(Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp));
     });
 
     return () => {
