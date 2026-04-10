@@ -110,41 +110,6 @@ The system bridges two worlds — the fisherman's mobile app at sea and a shore-
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/kadal-yatri.git
-cd kadal-yatri
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Environment Variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_MAP_API_KEY=your_map_api_key
-NEXT_PUBLIC_AIS_FEED_URL=your_ais_feed_endpoint
-NEXT_PUBLIC_LORA_GATEWAY_URL=your_lora_gateway_url
-INCOIS_API_KEY=your_incois_api_key
-```
-
----
-
 ## 📱 Usage
 
 ### For Fishermen
