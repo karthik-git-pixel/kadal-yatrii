@@ -591,7 +591,7 @@ export default function CommandDashboard() {
                   <Circle key={z.id} center={[z.lat, z.lng]} radius={z.radius} pathOptions={{ color: 'var(--accent-green)', fillColor: 'var(--accent-green)', fillOpacity: 0.2 }} />
                 ))}
 
-                {vessels.map((v: Vessel) => (
+                {vessels.filter(v => v.lat != null && v.lng != null).map((v: Vessel) => (
                   <Marker key={v.id} position={[v.lat, v.lng]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
@@ -603,10 +603,10 @@ export default function CommandDashboard() {
                     {v.status === 'SOS' && <Circle center={[v.lat, v.lng]} radius={1500} pathOptions={{ color: 'red', fillColor: 'red', className: 'sos-pulse' }} />}
                   </Marker>
                 ))}
-                {sosVessels.map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
+                {sosVessels.filter(v => v.lat != null && v.lng != null).map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
                 
                 {/* AIS WORLD TRAFFIC */}
-                {Array.from(aisVessels.values()).map((v: AISVessel) => (
+                {Array.from(aisVessels.values()).filter(v => v.lat != null && v.lon != null).map((v: AISVessel) => (
                   <Marker 
                     key={`ais-${v.mmsi}`} 
                     position={[v.lat, v.lon]}
@@ -639,7 +639,8 @@ export default function CommandDashboard() {
                     </div>
                   </Popup>
                 </Marker>
-                {[...liveSOSQueue, ...liveDistressQueue].map(sos => (
+                {/* LIVE AND ACKNOWLEDGED SOS SIGNALS FROM FIRESTORE */}
+                {[...liveSOSQueue, ...liveDistressQueue].filter(sos => sos.lat != null && sos.lon != null).map(sos => (
                   <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
                     <Popup>
                       <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
