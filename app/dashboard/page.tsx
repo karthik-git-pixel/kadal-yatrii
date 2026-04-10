@@ -245,35 +245,55 @@ export default function CommandDashboard() {
     };
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    // --- MQTT & Firestore Sync ---
     const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
     client.on("connect", () => {
-      console.log("MQTT Connected");
-      // Reverted to global topic as requested
-      client.subscribe("kadal/sos");
+      console.log("✅ MQTT Connected to broker.hivemq.com");
+      client.subscribe("kadal/sos", (err) => {
+        if (err) console.error("MQTT Subscription Error:", err);
+        else console.log("📡 Subscribed to topic: kadal/sos");
+      });
+    });
+
+    client.on("error", (err) => {
+      console.error("❌ MQTT Connection Error:", err);
     });
 
     client.on("message", (topic, message) => {
-      console.log(`MQTT Message [${topic}]:`, message.toString());
+      const payload = message.toString();
+      console.log(`📥 MQTT Message [${topic}]:`, payload);
+      
       if (topic === "kadal/sos") {
         try {
-          const data = JSON.parse(message.toString());
-          const lat = data.lat;
-          const lon = data.lon;
-          const vesselId = data.id || "MQTT_VESSEL";
-          const vesselName = data.name || "External Boat";
+          const data = JSON.parse(payload);
+          // Flexible coordinate parsing
+          const lat = data.lat || data.latitude || data.Lat;
+          const lon = data.lon || data.lng || data.longitude || data.Lon;
+          
+          if (!lat || !lon) {
+            console.warn("⚠️ Received MQTT SOS but missing coordinates (lat/lon/latitude/longitude)");
+            return;
+          }
 
+          console.log("🚨 Valid SOS Received via MQTT:", lat, lon);
+          
+          const vesselId = data.id || "MQTT_VESSEL_" + Math.floor(Math.random() * 1000);
+          const vesselName = data.name || "External Hardware";
+          
           addDoc(collection(db, 'sos_alerts'), {
             vesselId: vesselId,
             vesselName: vesselName,
-            lat: lat,
-            lon: lon,
+            lat: parseFloat(lat),
+            lng: parseFloat(lon),
             status: "ACTIVE",
             timestamp: serverTimestamp()
-          }).catch(err => console.error("Firebase Log Error:", err));
+          }).then(() => {
+            console.log("✅ SOS logged to Firebase successfully");
+          }).catch(err => console.error("❌ Firebase Log Error:", err));
+          
         } catch (e) {
-          console.error("Failed to parse SOS message", e);
+          console.error("❌ Failed to parse MQTT JSON message:", e);
         }
       }
     });
