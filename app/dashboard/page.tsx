@@ -264,9 +264,14 @@ export default function CommandDashboard() {
   }, []);
 
   const handleAcknowledgeSOS = (id: string) => {
-    // Update in Firebase (Find document by ID or status)
     const alertRef = doc(db, 'sos_alerts', id);
     updateDoc(alertRef, { status: 'ACKNOWLEDGED' })
+      .catch(err => console.error("Firebase Update Error:", err));
+  };
+
+  const handleResolveSOS = (id: string) => {
+    const alertRef = doc(db, 'sos_alerts', id);
+    updateDoc(alertRef, { status: 'RESOLVED' })
       .catch(err => console.error("Firebase Update Error:", err));
   };
 
@@ -561,7 +566,10 @@ export default function CommandDashboard() {
                                 <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
                                 <div>Time: {sos.time}</div>
                             </div>
-                           <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
+                           <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                             <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ flex: 1, padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
+                             <button onClick={() => handleResolveSOS(sos.id)} style={{ padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>RESOLVE</button>
+                           </div>
                        </div>
                     ))}
                     {liveSOSQueue.length === 0 && (
