@@ -108,9 +108,9 @@ export default function CommandDashboard() {
             <div class="cc-dot"></div>
           </div>
         `,
-        iconSize: [60, 60],
-        iconAnchor: [30, 30],
-        popupAnchor: [0, -30]
+        iconSize: [70, 70],
+        iconAnchor: [35, 35],
+        popupAnchor: [0, -35]
       });
       (window as any).L_CommandIcon = CommandIcon;
       setL(mod);
@@ -467,37 +467,49 @@ export default function CommandDashboard() {
         .command-center-icon { background: none !important; border: none !important; }
         .cc-radar-wrapper {
           position: relative;
-          width: 60px;
-          height: 60px;
+          width: 70px;
+          height: 70px;
+        }
+        .cc-radar-wrapper::before {
+          content: '';
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 64px; height: 64px;
+          background: rgba(0, 8, 20, 0.85);
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          border: 2px solid rgba(0,210,255,0.5);
+          z-index: 3;
         }
         .cc-dot {
           position: absolute;
           top: 50%; left: 50%;
-          width: 12px; height: 12px;
+          width: 14px; height: 14px;
           background: #00d2ff;
           border-radius: 50%;
           transform: translate(-50%, -50%);
-          box-shadow: 0 0 12px #00d2ff, 0 0 25px rgba(0,210,255,0.5);
+          box-shadow: 0 0 8px #00d2ff, 0 0 20px #00d2ff, 0 0 40px rgba(0,210,255,0.6);
           z-index: 10;
         }
         .cc-sweep {
           position: absolute;
-          top: 0; left: 0;
-          width: 60px; height: 60px;
+          top: 50%; left: 50%;
+          width: 62px; height: 62px;
+          transform: translate(-50%, -50%);
           border-radius: 50%;
-          background: conic-gradient(from 0deg, transparent 0deg, rgba(0,210,255,0.4) 60deg, transparent 120deg);
-          animation: cc-rotate 3s linear infinite;
+          background: conic-gradient(from 0deg, transparent 0deg, rgba(0,210,255,0.7) 50deg, transparent 100deg);
+          animation: cc-rotate 2.5s linear infinite;
           z-index: 5;
         }
         @keyframes cc-rotate {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% { transform: translate(-50%, -50%) rotate(0deg); }
+          100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
         .cc-ping-ring {
           position: absolute;
           top: 50%; left: 50%;
           width: 20px; height: 20px;
-          border: 2px solid rgba(0,210,255,0.6);
+          border: 2.5px solid rgba(0,210,255,0.9);
           border-radius: 50%;
           transform: translate(-50%, -50%) scale(0.5);
           animation: cc-ping 3s ease-out infinite;
@@ -506,8 +518,8 @@ export default function CommandDashboard() {
         .cc-ping-2 { animation-delay: 1s; }
         .cc-ping-3 { animation-delay: 2s; }
         @keyframes cc-ping {
-          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; border-color: rgba(0,210,255,0.8); }
-          100% { transform: translate(-50%, -50%) scale(3); opacity: 0; border-color: rgba(0,210,255,0); }
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; border-color: rgba(0,210,255,1); }
+          100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; border-color: rgba(0,210,255,0); }
         }
 
         @media (max-width: 1200px) {
