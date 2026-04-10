@@ -552,30 +552,6 @@ export default function CommandDashboard() {
                 </button>
             </div>
 
-            <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
-                    <span style={{ color: 'var(--accent-orange)' }}>[ Active SOS : {activeSOSQueueCount} ]</span>
-                    <span style={{ color: 'white' }}>[ Live SOS Queue ]</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
-                    {liveSOSQueue.map((sos) => (
-                       <div key={sos.id} style={{ padding: '12px', background: 'rgba(255,77,77,0.1)', borderRadius: '10px', borderLeft: '4px solid red' }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                               <strong style={{ color: 'white', fontSize: '0.9rem' }}>Vessel: {sos.vesselId}</strong>
-                               <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 ACTIVE</span>
-                           </div>
-                           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                               <div>Lat: {sos.lat.toFixed(6)}</div>
-                               <div>Lon: {sos.lon.toFixed(6)}</div>
-                               <div>Time: {sos.time}</div>
-                           </div>
-                           <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
-                       </div>
-                    ))}
-                    {liveSOSQueue.length === 0 && (
-                        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '10px' }}>QUEUE EMPTY</div>
-                    )}
-                </div>
             </div>
           </div>
 
@@ -788,16 +764,7 @@ export default function CommandDashboard() {
               </div>
            </div>
 
-          <div className="glass-card" style={{ background: 'rgba(0,255,136,0.03)', borderColor: 'rgba(0,255,136,0.3)' }}>
-             <h3 style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--accent-green)', fontWeight: 800, letterSpacing: '0.1em' }}>🛰️ PFZ SATELLITE BROADCAST</h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <input value={newPFZ.lat} onChange={e => setNewPFZ({...newPFZ, lat: e.target.value})} type="number" placeholder="LAT" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
-                  <input value={newPFZ.lng} onChange={e => setNewPFZ({...newPFZ, lng: e.target.value})} type="number" placeholder="LNG" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', width: '100%' }} />
-                </div>
-                <input value={newPFZ.name} onChange={e => setNewPFZ({...newPFZ, name: e.target.value})} placeholder="ZONE NAME (E.G. TUNA HUB)" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '10px', color: 'white', fontSize: '0.8rem', fontWeight: 600, width: '100%' }} />
-                <button onClick={handleBroadcastPFZ} style={{ width: '100%', background: 'var(--accent-green)', color: 'black', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 0 20px var(--accent-green-glow)' }}>PUBLISH ZONE</button>
-             </div>
+           </div>
           </div>
 
           <div className="glass-card" style={{ flex: 1, overflowY: 'auto' }}>
