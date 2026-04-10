@@ -19,6 +19,7 @@ interface HwaAlert {
 interface SOSAlert {
   id: string;
   vesselId: string;
+  vesselName: string;
   lat: number;
   lon: number;
   timestamp: number;
@@ -192,6 +193,7 @@ export default function CommandDashboard() {
           activeAlerts.push({
             id: doc.id,
             vesselId: data.vesselId,
+            vesselName: data.vesselName || data.vesselId,
             lat: data.lat,
             lon: data.lon || data.lng, // support both naming conventions
             timestamp: timestamp,
@@ -213,6 +215,7 @@ export default function CommandDashboard() {
           ackAlerts.push({
             id: doc.id,
             vesselId: data.vesselId,
+            vesselName: data.vesselName || data.vesselId,
             lat: data.lat,
             lon: data.lon || data.lng,
             timestamp: timestamp,
@@ -563,8 +566,8 @@ export default function CommandDashboard() {
                     {liveSOSQueue.map((sos) => (
                        <div key={sos.id} style={{ padding: '12px', background: 'rgba(255,77,77,0.1)', borderRadius: '10px', borderLeft: '4px solid red' }}>
                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                               <strong style={{ color: 'white', fontSize: '0.9rem' }}>Vessel: {sos.vesselId}</strong>
-                               <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 ACTIVE</span>
+                               <strong style={{ color: 'white', fontSize: '1rem' }}>🚢 {sos.vesselName}</strong>
+                               <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 SOS</span>
                            </div>
                             <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
                                 <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
@@ -673,7 +676,7 @@ export default function CommandDashboard() {
                     <Marker key={`sos-marker-${sos.vesselId}-${sos.id}`} position={[sos.lat, sos.lon]}>
                       <Popup>
                         <div style={{ color: 'black', fontFamily: 'var(--font-sans)', padding: '10px' }}>
-                           <strong>{sos.vesselId}</strong>
+                           <strong>{sos.vesselName}</strong>
                            <br/>
                            Lat: {sos.lat}
                            <br/>
@@ -729,7 +732,7 @@ export default function CommandDashboard() {
                  {liveDistressQueue.map((sos) => (
                     <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
-                          <strong style={{ fontSize: '1rem', color: '#fff' }}>Vessel: {sos.vesselId}</strong>
+                          <strong style={{ fontSize: '1.1rem', color: '#fff' }}>🚢 {sos.vesselName}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
                        </div>
                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>

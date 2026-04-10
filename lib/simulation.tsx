@@ -118,7 +118,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
 
   const triggerSOS = useCallback((id: string) => {
     const v = vessels.find(v => v.id === id);
-    if (v) {
+    if (v && v.status !== 'SOS') {
       addDoc(collection(db, 'sos_alerts'), {
         vesselId: v.id,
         vesselName: v.name,
