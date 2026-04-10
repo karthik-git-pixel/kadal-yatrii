@@ -58,6 +58,7 @@ export default function CommandDashboard() {
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
+  const [mqttStatus, setMqttStatus] = useState<'CONNECTING' | 'CONNECTED' | 'ERROR'>('CONNECTING');
 
   const markets = Array.from(new Set(marketData.map(m => m.port)));
   const filteredMarket = marketData.filter(m => m.port === selectedDashboardMarket);
@@ -174,6 +175,7 @@ export default function CommandDashboard() {
 
     client.on("connect", () => {
       console.log("✅ MQTT Connected to broker.hivemq.com");
+      setMqttStatus('CONNECTED');
       client.subscribe("kadal/sos", (err) => {
         if (err) console.error("MQTT Subscription Error:", err);
         else console.log("📡 Subscribed to topic: kadal/sos");
@@ -182,6 +184,11 @@ export default function CommandDashboard() {
 
     client.on("error", (err) => {
       console.error("❌ MQTT Connection Error:", err);
+      setMqttStatus('ERROR');
+    });
+
+    client.on("offline", () => {
+      setMqttStatus('CONNECTING');
     });
 
     client.on("message", (topic, message) => {
@@ -490,7 +497,12 @@ export default function CommandDashboard() {
           <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.05), transparent)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-blue)' }}>🛰️ COMMAND</h2>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>V.1.0-STABLE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <div style={{ fontSize: '0.6rem', color: mqttStatus === 'CONNECTED' ? 'var(--accent-green)' : mqttStatus === 'ERROR' ? 'red' : 'orange', fontWeight: 800 }}>
+                   MQTT: {mqttStatus}
+                 </div>
+                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: mqttStatus === 'CONNECTED' ? 'var(--accent-green)' : 'red', boxShadow: mqttStatus === 'CONNECTED' ? '0 0 10px var(--accent-green)' : 'none' }} />
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', padding: '15px', border: '1px solid var(--glass-border)' }}>
