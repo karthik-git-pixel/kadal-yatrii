@@ -53,6 +53,15 @@ export default function CommandDashboard() {
   const [activeTab, setActiveTab] = useState<'status' | 'map' | 'intel'>('map');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    // Force Leaflet to recalculate its size when mobile tabs switch
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 300);
+    }
+  }, [activeTab]);
+
   const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
   const [aisVessels, setAisVessels] = useState<Map<number, AISVessel>>(new Map());
@@ -452,11 +461,14 @@ export default function CommandDashboard() {
             display: none;
           }
           .dashboard-left.active, .dashboard-center.active, .dashboard-right.active {
-            display: flex;
+            display: block;
           }
           .dashboard-center {
             order: 1;
             min-height: 500px;
+            height: 70vh;
+          }
+          .dashboard-center.active .map-wrapper {
             height: 70vh;
           }
           .weather-overlay {
