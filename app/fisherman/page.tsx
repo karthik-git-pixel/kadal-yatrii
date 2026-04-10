@@ -3,7 +3,7 @@
 import { useSimulation, IncoisData } from '@/lib/simulation';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface HwaAlert {
   state: string;
@@ -38,13 +38,20 @@ export default function FishermanPage() {
   useEffect(() => {
     const q = query(
       collection(db, 'coastal_warnings'),
-      where('active', '==', true),
-      orderBy('timestamp', 'desc')
+      where('active', '==', true)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const warnings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort by timestamp descending in JS to avoid Firestore index requirement
+      warnings.sort((a: any, b: any) => {
+        const tA = a.timestamp?.toMillis?.() || 0;
+        const tB = b.timestamp?.toMillis?.() || 0;
+        return tB - tA;
+      });
       setActiveWarnings(warnings);
+    }, (error) => {
+      console.error("Coastal warnings listener error:", error);
     });
 
     return () => unsubscribe();
