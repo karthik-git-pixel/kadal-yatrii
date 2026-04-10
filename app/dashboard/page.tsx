@@ -619,9 +619,9 @@ export default function CommandDashboard() {
         <main className={`dashboard-center ${activeTab === 'map' ? 'active' : ''}`}>
           <div className="glass-card map-wrapper">
             {L && (
-              <MapContainer center={[8.35, 76.88]} zoom={11} style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}>
+              <MapContainer center={baseStation} zoom={13} style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Circle center={coastlinePos} radius={500} color="var(--accent-blue)" fillColor="var(--accent-blue)" fillOpacity={0.4} />
+                <Circle center={baseStation} radius={2000} color="var(--accent-blue)" fillColor="var(--accent-blue)" fillOpacity={0.2} stroke={false} />
 
 
 
