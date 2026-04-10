@@ -688,16 +688,16 @@ export default function CommandDashboard() {
 
 
 
-          <div className="glass-card" style={{ background: 'rgba(0,210,255,0.03)', borderColor: 'var(--glass-border)', display: 'block' }}>
-            <h3 style={{ fontSize: '0.8rem', marginBottom: '20px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.1em' }}>📈 PRICE BROADCASTER</h3>
-            <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(0,210,255,0.03)', borderRadius: '16px', border: '1px solid var(--accent-blue-glow)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                <input value={newFish.species} onChange={e => setNewFish({ ...newFish, species: e.target.value })} placeholder="SPECIES" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: 'white', width: '100%' }} />
-                <input value={newFish.malayalam} onChange={e => setNewFish({ ...newFish, malayalam: e.target.value })} placeholder="മലയാളം" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: 'white', width: '100%' }} />
-                <input value={newFish.port} onChange={e => setNewFish({ ...newFish, port: e.target.value })} placeholder="PORT" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: 'white', width: '100%' }} />
-                <input value={newFish.price} onChange={e => setNewFish({ ...newFish, price: e.target.value })} type="number" placeholder="₹ PRICE" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: 'white', width: '100%' }} />
+          <div className="glass-card" style={{ background: 'rgba(0,210,255,0.03)', borderColor: 'var(--accent-blue-glow)', display: 'block', padding: '25px' }}>
+            <h3 style={{ fontSize: '0.9rem', marginBottom: '25px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.15em' }}>📈 PRICE BROADCASTER</h3>
+            <div style={{ marginBottom: '25px', padding: '20px', background: 'rgba(0,210,255,0.05)', borderRadius: '20px', border: '1px solid var(--accent-blue-glow)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <input value={newFish.species} onChange={e => setNewFish({ ...newFish, species: e.target.value })} placeholder="SPECIES" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)', padding: '14px', borderRadius: '12px', fontSize: '0.9rem', color: 'white', width: '100%', outline: 'none' }} />
+                <input value={newFish.malayalam} onChange={e => setNewFish({ ...newFish, malayalam: e.target.value })} placeholder="മലയാളം" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)', padding: '14px', borderRadius: '12px', fontSize: '1rem', color: 'white', width: '100%', outline: 'none' }} />
+                <input value={newFish.port} onChange={e => setNewFish({ ...newFish, port: e.target.value })} placeholder="PORT" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)', padding: '14px', borderRadius: '12px', fontSize: '0.9rem', color: 'white', width: '100%', outline: 'none' }} />
+                <input value={newFish.price} onChange={e => setNewFish({ ...newFish, price: e.target.value })} type="number" placeholder="₹ PRICE" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)', padding: '14px', borderRadius: '12px', fontSize: '1.1rem', color: 'var(--accent-green)', fontWeight: 800, width: '100%', outline: 'none' }} />
               </div>
-              <button onClick={handleUpdateMarket} style={{ width: '100%', background: 'var(--accent-blue)', border: 'none', padding: '12px', borderRadius: '10px', color: 'black', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem' }}>PUSH TO MESH</button>
+              <button onClick={handleUpdateMarket} style={{ width: '100%', background: 'var(--accent-blue)', border: 'none', padding: '18px', borderRadius: '14px', color: 'black', fontWeight: 900, cursor: 'pointer', fontSize: '1rem', transition: '0.3s', boxShadow: '0 4px 15px var(--accent-blue-glow)' }}>PUSH TO NETWORK MESH</button>
             </div>
 
             <select value={selectedDashboardMarket} onChange={(e) => setSelectedDashboardMarket(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', color: 'white', border: '1px solid var(--glass-border)', fontSize: '0.9rem', fontWeight: 600, marginBottom: '15px' }}>
