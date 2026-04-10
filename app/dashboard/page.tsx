@@ -551,8 +551,6 @@ export default function CommandDashboard() {
                   {showAIS ? 'LIVE ON' : 'PAUSED'}
                 </button>
             </div>
-
-            </div>
           </div>
 
           <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -577,6 +575,7 @@ export default function CommandDashboard() {
             </div>
           </div>
         </aside>
+
 
         {/* CENTER: SURVEILLANCE MAP */}
         <main className={`dashboard-center ${activeTab === 'map' ? 'active' : ''}`}>
@@ -725,7 +724,7 @@ export default function CommandDashboard() {
                  {liveDistressQueue.length === 0 && sosVessels.length === 0 && (
                      <div style={{ fontSize: '0.8rem', opacity: 0.4, textAlign: 'center', padding: '20px' }}>SAFE SECTOR.</div>
                  )}
-             </div>
+            </div>
           </div>
 
            {/* HIGH WAVE / INCOIS NOTIFICATIONS */}
@@ -764,9 +763,6 @@ export default function CommandDashboard() {
               </div>
            </div>
 
-           </div>
-          </div>
-
           <div className="glass-card" style={{ flex: 1, overflowY: 'auto' }}>
              <h3 style={{ fontSize: '0.8rem', marginBottom: '20px', color: 'var(--accent-blue)', fontWeight: 800, letterSpacing: '0.1em' }}>📈 PRICE BROADCASTER</h3>
              <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(0,210,255,0.03)', borderRadius: '16px', border: '1px solid var(--accent-blue-glow)' }}>
@@ -796,6 +792,7 @@ export default function CommandDashboard() {
              </table>
           </div>
         </aside>
+
       </div>
     </>
   );
