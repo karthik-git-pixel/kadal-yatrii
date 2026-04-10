@@ -37,7 +37,7 @@ const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { 
 const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false });
 
 export default function CommandDashboard() {
-  const { state, resolveSOS, updateMarketItem } = useSimulation();
+  const { state, resolveSOS, updateMarketItem, removeMarketItem } = useSimulation();
   const { vessels, incoisData, marketData } = state;
 
   const [selectedDashboardMarket, setSelectedDashboardMarket] = useState<string>('Vizhinjam');
@@ -60,6 +60,7 @@ export default function CommandDashboard() {
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
   const [mqttStatus, setMqttStatus] = useState<'CONNECTING' | 'CONNECTED' | 'ERROR'>('CONNECTING');
+  const [editingFish, setEditingFish] = useState<{ species: string; port: string; price: string } | null>(null);
 
   const markets = Array.from(new Set(marketData.map(m => m.port)));
   const filteredMarket = marketData.filter(m => m.port === selectedDashboardMarket);
@@ -868,12 +869,51 @@ export default function CommandDashboard() {
             </select>
 
             <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
-              <thead><tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', opacity: 0.5 }}><th style={{ padding: '10px' }}>SPECIES</th><th style={{ padding: '10px' }}>RATE/KG</th></tr></thead>
+              <thead><tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', opacity: 0.5 }}><th style={{ padding: '10px' }}>SPECIES</th><th style={{ padding: '10px' }}>RATE/KG</th><th style={{ padding: '10px', textAlign: 'right' }}>ACTIONS</th></tr></thead>
               <tbody>
                 {filteredMarket.map((item, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                    <td style={{ padding: '12px' }}><div style={{ fontWeight: 800, color: 'white' }}>{item.malayalam}</div><div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', opacity: 0.8 }}>{item.species.toUpperCase()}</div></td>
-                    <td style={{ padding: '12px', color: 'var(--accent-green)', fontWeight: 900, fontSize: '1.2rem' }}>₹{item.price}</td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: 800, color: 'white' }}>{item.malayalam}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', opacity: 0.8 }}>{item.species.toUpperCase()}</div>
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      {editingFish && editingFish.species === item.species && editingFish.port === item.port ? (
+                        <input
+                          value={editingFish.price}
+                          onChange={e => setEditingFish({ ...editingFish, price: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              updateMarketItem({ ...item, price: parseInt(editingFish.price) || item.price });
+                              setEditingFish(null);
+                            }
+                          }}
+                          autoFocus
+                          style={{ width: '70px', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--accent-blue)', padding: '6px 8px', borderRadius: '6px', color: 'var(--accent-green)', fontWeight: 900, fontSize: '1rem', outline: 'none' }}
+                        />
+                      ) : (
+                        <span style={{ color: 'var(--accent-green)', fontWeight: 900, fontSize: '1.2rem' }}>₹{item.price}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        {editingFish && editingFish.species === item.species && editingFish.port === item.port ? (
+                          <button
+                            onClick={() => { updateMarketItem({ ...item, price: parseInt(editingFish.price) || item.price }); setEditingFish(null); }}
+                            style={{ padding: '5px 10px', borderRadius: '6px', background: 'var(--accent-green)', border: 'none', color: 'black', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+                          >SAVE</button>
+                        ) : (
+                          <button
+                            onClick={() => setEditingFish({ species: item.species, port: item.port, price: String(item.price) })}
+                            style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(0,210,255,0.15)', border: '1px solid rgba(0,210,255,0.3)', color: 'var(--accent-blue)', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+                          >EDIT</button>
+                        )}
+                        <button
+                          onClick={() => { if (confirm(`Remove ${item.species} from ${item.port}?`)) removeMarketItem(item.species, item.port); }}
+                          style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(255,50,50,0.1)', border: '1px solid rgba(255,50,50,0.3)', color: '#ff5555', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+                        >DEL</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

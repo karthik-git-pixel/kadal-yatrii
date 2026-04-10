@@ -62,6 +62,7 @@ const SimulationContext = createContext<{
   resolveSOS: (id: string) => void;
   fetchLocationSafety: (lat: number, lng: number) => Promise<IncoisData>;
   updateMarketItem: (item: MarketItem) => void;
+  removeMarketItem: (species: string, port: string) => void;
   setUserVesselId: (id: string) => void;
 } | undefined>(undefined);
 
@@ -137,6 +138,10 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const removeMarketItem = useCallback((species: string, port: string) => {
+    setMarketData(prev => prev.filter(m => !(m.species === species && m.port === port)));
+  }, []);
+
 
 
   const fetchLocationSafety = useCallback(async (lat: number, lng: number): Promise<IncoisData> => {
@@ -157,7 +162,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, setUserVesselId }}>
+    <SimulationContext.Provider value={{ state: { vessels, incoisData, marketData, userVesselId }, triggerSOS, resolveSOS, fetchLocationSafety, updateMarketItem, removeMarketItem, setUserVesselId }}>
       {children}
     </SimulationContext.Provider>
   );
