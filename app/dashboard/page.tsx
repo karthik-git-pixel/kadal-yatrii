@@ -24,6 +24,7 @@ interface SOSAlert {
   lon: number;
   timestamp: number;
   time: string;
+  source: 'manual' | 'mpu';
   status: "ACTIVE" | "ACKNOWLEDGED";
 }
 
@@ -120,6 +121,7 @@ export default function CommandDashboard() {
           lon: data.lon || data.lng,
           timestamp: timestamp,
           time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+          source: data.source || 'manual',
           status: "ACTIVE"
         };
         const existing = groupedAlerts.get(data.vesselId);
@@ -150,6 +152,7 @@ export default function CommandDashboard() {
           lon: data.lon || data.lng,
           timestamp: timestamp,
           time: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleTimeString('en-US', { hour12: false }) : new Date().toLocaleTimeString('en-US', { hour12: false }),
+          source: data.source || 'manual',
           status: "ACKNOWLEDGED"
         };
         const existing = groupedAck.get(data.vesselId);
@@ -199,37 +202,40 @@ export default function CommandDashboard() {
 
           console.log("🚨 Valid SOS Received via MQTT:", lat, lon);
           
-          const vesselId = data.id || "HARDWARE_CHIP_01"; // Use a stable ID to prevent duplicates
-          const vesselName = data.name || "External SOS Device";
+          const vesselId = data.id || "BOAT_UNKNOWN";
+          const vesselName = data.id || "External Hardware";
+          const source = (data.source === 'mpu') ? 'mpu' : 'manual';
           
-          // Deduplicate: Check for existing active alerts for this vessel before adding a new doc
+          // Deduplicate: Key id + lat + lon 
           const sosRef = collection(db, 'sos_alerts');
-          const q = query(sosRef, where("vesselId", "==", vesselId), where("status", "==", "ACTIVE"));
+          const q = query(sosRef, 
+            where("vesselId", "==", vesselId), 
+            where("status", "==", "ACTIVE")
+          );
           
           getDocs(q).then(snapshot => {
-            if (snapshot.empty) {
+            const isDuplicate = snapshot.docs.some(d => {
+              const dData = d.data();
+              return dData.lat === parseFloat(lat) && (dData.lon === parseFloat(lon) || dData.lng === parseFloat(lon));
+            });
+
+            if (snapshot.empty || !isDuplicate) {
               addDoc(sosRef, {
                 vesselId: vesselId,
                 vesselName: vesselName,
                 lat: parseFloat(lat),
                 lng: parseFloat(lon),
+                source: source,
                 status: "ACTIVE",
                 timestamp: serverTimestamp()
-              }).then(() => {
-                console.log(`✅ New SOS logged for ${vesselName}`);
               });
             } else {
-              // Update coordinates of the existing active alert instead of creating a new one
-              const existingId = snapshot.docs[0].id;
-              updateDoc(doc(db, 'sos_alerts', existingId), {
-                lat: parseFloat(lat),
-                lng: parseFloat(lon),
+              // Just update the timestamp for heartbeat
+              updateDoc(doc(db, 'sos_alerts', snapshot.docs[0].id), {
                 timestamp: serverTimestamp()
-              }).then(() => {
-                console.log(`📡 Updated coordinates for active SOS: ${vesselName}`);
               });
             }
-          }).catch(err => console.error("❌ Firebase SOS Sync Error:", err));
+          });
           
         } catch (e) {
           console.error("❌ Failed to parse MQTT JSON message:", e);
@@ -254,11 +260,15 @@ export default function CommandDashboard() {
       .catch(err => console.error("Firebase Update Error:", err));
   };
 
-  const clearDistressQueue = () => {
-    if (window.confirm("Clear all acknowledged SOS alerts?")) {
-      setLiveDistressQueue([]);
-    }
+  const clearDistressQueue = async () => {
+    const q = query(collection(db, 'sos_alerts'), where("status", "==", "ACKNOWLEDGED"));
+    const snapshot = await getDocs(q);
+    snapshot.forEach(async (d) => {
+      await updateDoc(doc(db, 'sos_alerts', d.id), { status: 'RESOLVED' });
+    });
   };
+
+
 
   const sosVessels = vessels.filter((v: Vessel) => v.status === 'SOS');
   const activeSOSQueueCount = liveSOSQueue.length;
@@ -507,23 +517,31 @@ export default function CommandDashboard() {
                 }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.6rem', cursor: 'pointer' }}>CLEAR ALL</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
-                {liveSOSQueue.map((sos) => (
-                  <div key={sos.id} style={{ padding: '12px', background: 'rgba(255,77,77,0.1)', borderRadius: '10px', borderLeft: '4px solid red' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                      <strong style={{ color: 'white', fontSize: '1rem' }}>🚢 {sos.vesselName}</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'red', fontWeight: 800 }}>🔴 SOS</span>
+                {liveSOSQueue.map((sos) => {
+                  const isAuto = sos.source === 'mpu';
+                  const themeColor = isAuto ? 'var(--accent-orange)' : 'red';
+                  const bg = isAuto ? 'rgba(255,165,0,0.1)' : 'rgba(255,0,0,0.1)';
+                  
+                  return (
+                    <div key={`${sos.vesselId}-${sos.id}-${sos.timestamp}`} style={{ padding: '15px', background: bg, borderRadius: '16px', borderLeft: `6px solid ${themeColor}`, border: `1px solid ${themeColor}33` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ color: 'white', fontSize: '1.1rem' }}>🚢 {sos.vesselId}</strong>
+                        <span style={{ fontSize: '0.65rem', color: themeColor, fontWeight: 900, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: `1px solid ${themeColor}` }}>
+                          {isAuto ? 'AUTO SOS' : 'MANUAL SOS'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.6', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>COORDS:</span> <span style={{ color: 'white' }}>{sos.lat.toFixed(6)}, {sos.lon.toFixed(6)}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>TIME:</span> <span style={{ color: 'white' }}>{sos.time}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>SOURCE:</span> <span style={{ color: themeColor, fontWeight: 800 }}>{sos.source.toUpperCase()}</span></div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: themeColor, color: 'white', border: 'none', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem' }}>ACKNOWLEDGE</button>
+                        <button onClick={() => handleResolveSOS(sos.id)} style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>RESOLVE</button>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                      <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
-                      <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
-                      <div>Time: {sos.time}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                      <button onClick={() => handleAcknowledgeSOS(sos.id)} style={{ flex: 1, padding: '8px', borderRadius: '6px', background: 'red', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>ACKNOWLEDGE</button>
-                      <button onClick={() => handleResolveSOS(sos.id)} style={{ padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>RESOLVE</button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {liveSOSQueue.length === 0 && (
                   <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '10px' }}>QUEUE EMPTY</div>
                 )}
@@ -646,19 +664,24 @@ export default function CommandDashboard() {
               <button onClick={clearDistressQueue} style={{ padding: '6px 12px', background: 'rgba(255,255,0,0.1)', border: '1px solid yellow', color: 'yellow', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}>CLEAR LIST</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
-              {liveDistressQueue.map((sos) => (
-                <div key={sos.id} style={{ padding: '15px', background: 'rgba(255,255,0,0.1)', borderRadius: '16px', borderLeft: '4px solid yellow' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', flexWrap: 'wrap', gap: '5px' }}>
-                    <strong style={{ fontSize: '1.1rem', color: '#fff' }}>🚢 {sos.vesselName}</strong>
-                    <span style={{ fontSize: '0.7rem', color: 'yellow', fontWeight: 800 }}>🟡 ACKNOWLEDGED</span>
+              {liveDistressQueue.map((sos) => {
+                const isAuto = sos.source === 'mpu';
+                const themeColor = 'yellow';
+                
+                return (
+                  <div key={`${sos.vesselId}-${sos.id}-${sos.timestamp}`} style={{ padding: '15px', background: 'rgba(255,255,0,0.05)', borderRadius: '16px', borderLeft: '6px solid yellow', border: '1px solid rgba(255,255,0,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '1.1rem', color: '#fff' }}>🚢 {sos.vesselId}</strong>
+                      <span style={{ fontSize: '0.6rem', color: 'yellow', fontWeight: 900, background: 'rgba(255,255,0,0.1)', padding: '3px 6px', borderRadius: '4px' }}>ACKNOWLEDGED</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)', lineHeight: '1.6' }}>
+                      <div>SOURCE: <span style={{ color: isAuto ? 'var(--accent-orange)' : 'red', fontWeight: 800 }}>{sos.source.toUpperCase()}</span></div>
+                      <div>COORDS: {sos.lat.toFixed(6)}, {sos.lon.toFixed(6)}</div>
+                      <div style={{ marginTop: '4px', opacity: 0.5 }}>ACK TIME: {sos.time}</div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
-                    <div>Lat: {sos.lat?.toFixed(6) || 'N/A'}</div>
-                    <div>Lon: {sos.lon?.toFixed(6) || 'N/A'}</div>
-                    <div>Time: {sos.time}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {sosVessels.map((v: Vessel) => (
                 <div key={`alert-${v.id}`} style={{ padding: '15px', background: 'rgba(255,77,77,0.1)', borderRadius: '16px', borderLeft: '4px solid var(--accent-orange)' }}>
