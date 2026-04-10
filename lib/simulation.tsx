@@ -41,10 +41,10 @@ interface SimulationState {
 }
 
 const INITIAL_VESSELS: Vessel[] = [
-  { id: 'v1', name: 'Agnivesh', status: 'Active', lat: 8.384, lng: 76.920, speed: 12, heading: 180, battery: 92, lastUpdate: Date.now() },
-  { id: 'v2', name: 'Karthik', status: 'Active', lat: 8.350, lng: 76.880, speed: 8, heading: 175, battery: 88, lastUpdate: Date.now() },
-  { id: 'v3', name: 'Megha', status: 'Active', lat: 8.300, lng: 76.850, speed: 10, heading: 190, battery: 95, lastUpdate: Date.now() },
-  { id: 'v4', name: 'Amrutha', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
+  { id: 'v1', name: 'boat_1', status: 'Active', lat: 8.384, lng: 76.920, speed: 12, heading: 180, battery: 92, lastUpdate: Date.now() },
+  { id: 'v2', name: 'boat_2', status: 'Active', lat: 8.350, lng: 76.880, speed: 8, heading: 175, battery: 88, lastUpdate: Date.now() },
+  { id: 'v3', name: 'boat_3', status: 'Active', lat: 8.300, lng: 76.850, speed: 10, heading: 190, battery: 95, lastUpdate: Date.now() },
+  { id: 'v4', name: 'boat_4', status: 'Active', lat: 8.280, lng: 76.820, speed: 14, heading: 200, battery: 78, lastUpdate: Date.now() },
 ];
 
 
