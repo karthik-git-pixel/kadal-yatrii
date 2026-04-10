@@ -93,17 +93,24 @@ export default function CommandDashboard() {
         iconAnchor: [12, 41]
       });
 
-      const CommandIcon = mod.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [30, 48],
-        iconAnchor: [15, 48],
-        popupAnchor: [1, -34],
-        shadowSize: [50, 50]
-      });
-
       mod.Marker.prototype.options.icon = DefaultIcon;
-      // Store in a way that we can use it in the component
+
+      // Custom radar scanner icon for the Command Center
+      const CommandIcon = mod.divIcon({
+        className: 'command-center-icon',
+        html: `
+          <div class="cc-radar-wrapper">
+            <div class="cc-ping-ring cc-ping-1"></div>
+            <div class="cc-ping-ring cc-ping-2"></div>
+            <div class="cc-ping-ring cc-ping-3"></div>
+            <div class="cc-sweep"></div>
+            <div class="cc-dot"></div>
+          </div>
+        `,
+        iconSize: [60, 60],
+        iconAnchor: [30, 30],
+        popupAnchor: [0, -30]
+      });
       (window as any).L_CommandIcon = CommandIcon;
       setL(mod);
     });
@@ -455,14 +462,51 @@ export default function CommandDashboard() {
           border-bottom-color: var(--accent-blue);
         }
 
-        @keyframes radar-ping {
-          0% { transform: scale(0.1); opacity: 1; stroke-width: 10; }
-          100% { transform: scale(2.5); opacity: 0; stroke-width: 1; }
+        /* Command Center Radar Scanner */
+        .command-center-icon { background: none !important; border: none !important; }
+        .cc-radar-wrapper {
+          position: relative;
+          width: 60px;
+          height: 60px;
         }
-        .command-scanner {
-          animation: radar-ping 4s ease-out infinite;
-          transform-origin: center;
-          pointer-events: none;
+        .cc-dot {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 12px; height: 12px;
+          background: #00d2ff;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          box-shadow: 0 0 12px #00d2ff, 0 0 25px rgba(0,210,255,0.5);
+          z-index: 10;
+        }
+        .cc-sweep {
+          position: absolute;
+          top: 0; left: 0;
+          width: 60px; height: 60px;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, transparent 0deg, rgba(0,210,255,0.4) 60deg, transparent 120deg);
+          animation: cc-rotate 3s linear infinite;
+          z-index: 5;
+        }
+        @keyframes cc-rotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .cc-ping-ring {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 20px; height: 20px;
+          border: 2px solid rgba(0,210,255,0.6);
+          border-radius: 50%;
+          transform: translate(-50%, -50%) scale(0.5);
+          animation: cc-ping 3s ease-out infinite;
+        }
+        .cc-ping-1 { animation-delay: 0s; }
+        .cc-ping-2 { animation-delay: 1s; }
+        .cc-ping-3 { animation-delay: 2s; }
+        @keyframes cc-ping {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; border-color: rgba(0,210,255,0.8); }
+          100% { transform: translate(-50%, -50%) scale(3); opacity: 0; border-color: rgba(0,210,255,0); }
         }
 
         @media (max-width: 1200px) {
