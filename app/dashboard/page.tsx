@@ -27,16 +27,6 @@ interface SOSAlert {
   status: "ACTIVE" | "ACKNOWLEDGED";
 }
 
-interface AISVessel {
-  mmsi: number;
-  name: string;
-  lat: number;
-  lon: number;
-  speed: number;
-  course: number;
-  lastUpdate: number;
-}
-
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
@@ -65,9 +55,6 @@ export default function CommandDashboard() {
 
   const [liveSOSQueue, setLiveSOSQueue] = useState<SOSAlert[]>([]);
   const [liveDistressQueue, setLiveDistressQueue] = useState<SOSAlert[]>([]);
-  const [aisVessels, setAisVessels] = useState<Map<number, AISVessel>>(new Map());
-  const [showAIS, setShowAIS] = useState(true);
-  const [aisStatus, setAisStatus] = useState<"CONNECTING" | "LIVE" | "ERROR">("CONNECTING");
 
   const [newFish, setNewFish] = useState({ species: '', malayalam: '', port: '', price: '' });
   const [newPFZ, setNewPFZ] = useState({ lat: '', lng: '', name: '' });
@@ -107,77 +94,6 @@ export default function CommandDashboard() {
       setL(mod);
     });
   }, []);
-
-  // --- AISStream.io Proxy Integration ---
-  useEffect(() => {
-    if (!showAIS) {
-      setAisStatus("CONNECTING");
-      return;
-    }
-
-    let eventSource: EventSource | null = null;
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const connect = () => {
-      setAisStatus("CONNECTING");
-      // Connect to our secure backend proxy instead of directly to AISStream
-      eventSource = new EventSource("/api/ais");
-
-      eventSource.onopen = () => {
-        setAisStatus("LIVE");
-        console.log("AIS Proxy Connected");
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.MessageType === "PositionReport" || data.Message?.PositionReport) {
-            setAisStatus("LIVE");
-            const report = data.Message.PositionReport;
-            const metadata = data.MetaData;
-
-            setAisVessels(prev => {
-              const newMap = new Map(prev);
-              newMap.set(metadata.MMSI, {
-                mmsi: metadata.MMSI,
-                name: metadata.ShipName?.trim() || `AIS_${metadata.MMSI}`,
-                lat: metadata.Latitude,
-                lon: metadata.Longitude,
-                speed: report.Sog,
-                course: report.Cog,
-                lastUpdate: Date.now()
-              });
-
-              // Cleanup old AIS data (silent vessels > 10 mins)
-              const timeout = 600000;
-              for (let [mmsi, v] of newMap.entries()) {
-                if (Date.now() - v.lastUpdate > timeout) newMap.delete(mmsi);
-              }
-
-              return newMap;
-            });
-          }
-        } catch (err) {
-          console.error("AIS Parse Error:", err);
-        }
-      };
-
-      eventSource.onerror = (err) => {
-        console.warn("AIS Proxy disconnected, retrying in 5s...", err);
-        setAisStatus("ERROR");
-        eventSource?.close();
-        reconnectTimeout = setTimeout(connect, 5000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      if (eventSource) eventSource.close();
-      clearTimeout(reconnectTimeout);
-    };
-  }, [showAIS]);
 
   // --- MQTT & Firestore Sync ---
   useEffect(() => {
@@ -567,27 +483,7 @@ export default function CommandDashboard() {
               </div>
             </div>
 
-            {/* AIS Toggle */}
-            <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.05)', padding: '10px 15px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-              <div>
-                <div style={{ fontSize: '0.65rem', color: '#3b82f6', fontWeight: 800, letterSpacing: '0.05em' }}>LIVE AIS SHIP TRAFFIC</div>
-                <div style={{ fontSize: '0.5rem', color: aisStatus === 'LIVE' ? '#10b981' : aisStatus === 'ERROR' ? '#ef4444' : '#64748b', fontWeight: 800 }}>
-                  ● {aisStatus} {aisVessels.size > 0 ? `(${aisVessels.size} SHIPS)` : ''}
-                </div>
-              </div>
-              <button onClick={() => setShowAIS(!showAIS)} style={{
-                padding: '5px 10px',
-                borderRadius: '6px',
-                border: 'none',
-                background: showAIS ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                color: showAIS ? 'white' : 'rgba(255,255,255,0.4)',
-                fontSize: '0.6rem',
-                fontWeight: 900,
-                cursor: 'pointer'
-              }}>
-                {showAIS ? 'LIVE ON' : 'PAUSED'}
-              </button>
-            </div>
+
 
             <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 800, fontSize: '0.8rem' }}>
@@ -668,32 +564,7 @@ export default function CommandDashboard() {
                 ))}
                 {sosVessels.map((v: Vessel) => <Polyline key={`mesh-${v.id}`} positions={[[v.lat, v.lng], coastlinePos]} color="orange" dashArray="8, 12" weight={2} />)}
 
-                {/* AIS WORLD TRAFFIC */}
-                {Array.from(aisVessels.values()).map((v: AISVessel) => (
-                  <Marker
-                    key={`ais-${v.mmsi}`}
-                    position={[v.lat, v.lon]}
-                    icon={L ? (L as any).divIcon({
-                      className: 'ais-marker',
-                      html: `<div style="transform: rotate(${v.course}deg); font-size: 1.2rem; color: #3b82f6; text-shadow: 0 0 5px rgba(0,0,0,0.5)">🚢</div>`,
-                      iconSize: [20, 20],
-                      iconAnchor: [10, 10]
-                    }) : undefined}
-                  >
-                    <Popup>
-                      <div style={{ color: 'black', padding: '10px' }}>
-                        <div style={{ fontSize: '0.6rem', color: '#3b82f6', fontWeight: 800 }}>GLOBAL AIS TRAFFIC</div>
-                        <strong style={{ fontSize: '1.2rem' }}>{v.name}</strong><br />
-                        <div style={{ fontSize: '0.8rem', marginTop: '5px', opacity: 0.7 }}>MMSI: {v.mmsi}</div>
-                        <hr style={{ margin: '8px 0', opacity: 0.1 }} />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.75rem' }}>
-                          <div>SPEED: <strong>{v.speed} kn</strong></div>
-                          <div>COURSE: <strong>{v.course}°</strong></div>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+
 
                 <Marker position={baseStation}>
                   <Popup>
