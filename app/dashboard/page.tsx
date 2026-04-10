@@ -554,7 +554,7 @@ export default function CommandDashboard() {
                   }
                 }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.6rem', cursor: 'pointer' }}>CLEAR ALL</button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {liveSOSQueue.map((sos) => {
                   const isAuto = sos.source === 'mpu';
                   const themeColor = isAuto ? 'var(--accent-orange)' : 'red';
@@ -706,7 +706,7 @@ export default function CommandDashboard() {
               <h3 style={{ fontSize: '0.8rem', margin: 0, color: 'yellow', fontWeight: 800, letterSpacing: '0.1em' }}>🟡 LIVE DISTRESS QUEUE</h3>
               <button onClick={clearDistressQueue} style={{ padding: '6px 12px', background: 'rgba(255,255,0,0.1)', border: '1px solid yellow', color: 'yellow', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}>CLEAR LIST</button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {liveDistressQueue.map((sos) => {
                 const isAuto = sos.source === 'mpu';
                 const themeColor = 'yellow';
