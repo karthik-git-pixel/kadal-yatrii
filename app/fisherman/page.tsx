@@ -29,18 +29,30 @@ export default function FishermanPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const warnings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const now = Date.now();
-      const recentWarnings = warnings.filter((w: any) => {
-        const t = w.timestamp?.toMillis?.() || 0;
+      const uniqueWarningsMap = new Map();
+
+      warnings.forEach((w: any) => {
+        const t = w.timestamp?.toMillis?.() !== undefined ? w.timestamp.toMillis() : Date.now();
         // Only show warnings from the last 12 hours
-        return (now - t) < 12 * 60 * 60 * 1000;
+        if ((now - t) < 12 * 60 * 60 * 1000) {
+          const dist = w.district?.trim() || 'UNKNOWN';
+          if (!uniqueWarningsMap.has(dist)) {
+            w._t = t;
+            uniqueWarningsMap.set(dist, w);
+          } else {
+            const existing = uniqueWarningsMap.get(dist);
+            if (t > existing._t) {
+              w._t = t;
+              uniqueWarningsMap.set(dist, w);
+            }
+          }
+        }
       });
 
+      const recentWarnings = Array.from(uniqueWarningsMap.values());
+
       // Sort by timestamp ASCENDING (oldest first) to form a FIFO queue
-      recentWarnings.sort((a: any, b: any) => {
-        const tA = a.timestamp?.toMillis?.() || 0;
-        const tB = b.timestamp?.toMillis?.() || 0;
-        return tA - tB;
-      });
+      recentWarnings.sort((a: any, b: any) => a._t - b._t);
       setActiveWarnings(recentWarnings);
     }, (error) => {
       console.error("Coastal warnings listener error:", error);
