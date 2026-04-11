@@ -5,14 +5,6 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-interface HwaAlert {
-  state: string;
-  district: string;
-  alertType: string;
-  message: string;
-  issueDate: string;
-}
-
 export default function FishermanPage() {
   const { state, triggerSOS, resolveSOS, fetchLocationSafety, setUserVesselId } = useSimulation();
   const { vessels, incoisData, userVesselId, marketData } = state;
@@ -27,13 +19,6 @@ export default function FishermanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeWarnings, setActiveWarnings] = useState<any[]>([]);
   const [dismissedWarningIds, setDismissedWarningIds] = useState<string[]>([]);
-  const [hwaAlerts, setHwaAlerts] = useState<HwaAlert[]>([]);
-
-  useEffect(() => {
-    fetch('/api/incois/hwa').then(res => res.json()).then(data => {
-      if (data.success) setHwaAlerts(data.alerts);
-    }).catch(console.error);
-  }, []);
 
   useEffect(() => {
     const q = query(
@@ -43,13 +28,20 @@ export default function FishermanPage() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const warnings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Sort by timestamp descending in JS to avoid Firestore index requirement
-      warnings.sort((a: any, b: any) => {
+      const now = Date.now();
+      const recentWarnings = warnings.filter((w: any) => {
+        const t = w.timestamp?.toMillis?.() || 0;
+        // Only show warnings from the last 12 hours
+        return (now - t) < 12 * 60 * 60 * 1000;
+      });
+
+      // Sort by timestamp ASCENDING (oldest first) to form a FIFO queue
+      recentWarnings.sort((a: any, b: any) => {
         const tA = a.timestamp?.toMillis?.() || 0;
         const tB = b.timestamp?.toMillis?.() || 0;
-        return tB - tA;
+        return tA - tB;
       });
-      setActiveWarnings(warnings);
+      setActiveWarnings(recentWarnings);
     }, (error) => {
       console.error("Coastal warnings listener error:", error);
     });
@@ -137,12 +129,19 @@ export default function FishermanPage() {
            
            {visibleWarnings.length > 0 && (
              <div style={{ background: 'rgba(255, 0, 0, 0.2)', border: '2px solid red', padding: '20px', borderRadius: '16px', animation: 'flashRedLight 1.5s infinite alternate', boxShadow: '0 0 20px rgba(255,0,0,0.3)', marginBottom: '10px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                 <span style={{ fontSize: '2rem' }}>⚠️</span>
-                 <h2 style={{ color: 'red', fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>DANGER DIRECTIVE</h2>
+               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                   <span style={{ fontSize: '2rem' }}>⚠️</span>
+                   <h2 style={{ color: 'red', fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>DANGER DIRECTIVE</h2>
+                 </div>
+                 {visibleWarnings.length > 1 && (
+                   <div style={{ background: 'red', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
+                     + {visibleWarnings.length - 1} QUEUED
+                   </div>
+                 )}
                </div>
                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 {visibleWarnings.map(w => {
+                 {visibleWarnings.slice(0, 1).map(w => {
                    const dist = w.district.split('-')[0].trim();
                    const isDanger = w.district.includes('[DANGER]') || w.alertType?.includes('WARNING');
                    const engMsg = isDanger ? 'STAY AWAY FROM SEA' : 'SWELL SURGE WATCH';
@@ -249,24 +248,25 @@ export default function FishermanPage() {
            </div>
 
            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {hwaAlerts.map((alert, idx) => {
-                const isDanger = alert.district.includes('[DANGER]') || !alert.message.toLowerCase().includes('no immediate action is required');
+              {activeWarnings.map((alert, idx) => {
+                const isDanger = alert.district?.includes('[DANGER]') || alert.alertType?.includes('WARNING') || (alert.message && !alert.message.toLowerCase().includes('no immediate action is required'));
                 const cardColor = isDanger ? 'var(--accent-orange)' : '#fdd835'; 
                 const bgFill = isDanger ? 'rgba(255,77,77,0.15)' : 'rgba(253,216,53,0.05)';
                 const mlStatus = isDanger ? 'തീരത്ത് വലിയ തിരമാലകൾ' : 'കടൽ നില പരിശോധിക്കുക';
+                const issueDate = alert.timestamp?.toDate ? alert.timestamp.toDate().toLocaleDateString() : new Date().toLocaleDateString();
 
                 return (
-                  <div key={idx} style={{ padding: '15px', background: bgFill, borderRadius: '20px', borderLeft: `6px solid ${cardColor}`, boxShadow: `0 4px 15px rgba(0,0,0,0.2)` }}>
+                  <div key={alert.id || idx} style={{ padding: '15px', background: bgFill, borderRadius: '20px', borderLeft: `6px solid ${cardColor}`, boxShadow: `0 4px 15px rgba(0,0,0,0.2)` }}>
                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{alert.district.replace('[DANGER]', '').trim()}</strong>
-                        <span style={{ fontSize: '0.7rem', color: cardColor, fontWeight: 800 }}>{alert.issueDate}</span>
+                        <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{(alert.district || '').replace('[DANGER]', '').trim()}</strong>
+                        <span style={{ fontSize: '0.7rem', color: cardColor, fontWeight: 800 }}>{issueDate}</span>
                      </div>
                      <div style={{ color: cardColor, fontSize: '1rem', fontWeight: 900, marginBottom: '5px' }}>{mlStatus}</div>
                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>{alert.message}</div>
                   </div>
                 );
               })}
-              {hwaAlerts.length === 0 && (
+              {activeWarnings.length === 0 && (
                   <div style={{ textAlign: 'center', opacity: 0.5, padding: '40px' }}>No active district warnings.</div>
               )}
            </div>
