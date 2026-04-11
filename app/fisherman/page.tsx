@@ -142,19 +142,15 @@ export default function FishermanPage() {
            
            {visibleWarnings.length > 0 && (
              <div style={{ background: 'rgba(255, 0, 0, 0.2)', border: '2px solid red', padding: '20px', borderRadius: '16px', animation: 'flashRedLight 1.5s infinite alternate', boxShadow: '0 0 20px rgba(255,0,0,0.3)', marginBottom: '10px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                    <span style={{ fontSize: '2rem' }}>⚠️</span>
                    <h2 style={{ color: 'red', fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>DANGER DIRECTIVE</h2>
                  </div>
-                 {visibleWarnings.length > 1 && (
-                   <div style={{ background: 'red', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
-                     + {visibleWarnings.length - 1} QUEUED
-                   </div>
-                 )}
+                 
                </div>
                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 {visibleWarnings.slice(0, 1).map(w => {
+                 {visibleWarnings.map(w => {
                    const dist = w.district.split('-')[0].trim();
                    const isDanger = w.district.includes('[DANGER]') || w.alertType?.includes('WARNING');
                    const engMsg = isDanger ? 'STAY AWAY FROM SEA' : 'SWELL SURGE WATCH';
