@@ -19,12 +19,10 @@ export default function FishermanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeWarnings, setActiveWarnings] = useState<any[]>([]);
   const [dismissedWarningIds, setDismissedWarningIds] = useState<string[]>([]);
-  const initialLoadRef = useRef(true);
-  const ignoredIdsRef = useRef<Set<string>>(new Set());
-  
+    
   useEffect(() => {
     const q = query(
-      collection(db, 'coastal_warnings'),
+      collection(db, 'coastal_warnings_v3'),
       where('active', '==', true)
     );
 
@@ -33,13 +31,7 @@ export default function FishermanPage() {
       const now = Date.now();
       const uniqueWarningsMap = new Map();
 
-      if (initialLoadRef.current) {
-        ignoredIdsRef.current = new Set(warnings.map((w: any) => w.id));
-        initialLoadRef.current = false;
-      }
-
       warnings.forEach((w: any) => {
-        if (ignoredIdsRef.current.has(w.id)) return;
         const t = w.timestamp?.toMillis?.() !== undefined ? w.timestamp.toMillis() : Date.now();
         const dist = w.district?.trim() || 'UNKNOWN';
         if (!uniqueWarningsMap.has(dist)) {

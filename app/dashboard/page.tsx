@@ -74,7 +74,7 @@ export default function CommandDashboard() {
   }, []);
 
   const handleBroadcastWarning = (alert: HwaAlert) => {
-    addDoc(collection(db, 'coastal_warnings'), {
+    addDoc(collection(db, 'coastal_warnings_v3'), {
       district: alert.district,
       message: alert.message,
       alertType: alert.alertType,
