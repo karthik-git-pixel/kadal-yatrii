@@ -1,0 +1,1 @@
+const fs = require('fs');\nconst path = 'app/dashboard/page.tsx';\nlet text = fs.readFileSync(path, 'utf8');\ntext = text.replace(/;\\\\n    const client = mqtt\\.connect/g, ';\\n    const client = mqtt.connect');\nfs.writeFileSync(path, text, 'utf8');\nconsole.log('Fixed syntax error!');

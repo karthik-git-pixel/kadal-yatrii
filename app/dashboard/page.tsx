@@ -188,10 +188,11 @@ export default function CommandDashboard() {
   }, []);
 
   useEffect(() => {    // --- MQTT & Firestore Sync ---
-    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+    const clientId = 'kadal-cc-' + Math.random().toString(16).substring(2, 8);
+    const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", { clientId });
 
     client.on("connect", () => {
-      console.log("✅ MQTT Connected to broker.hivemq.com");
+      console.log("✅ MQTT Connected to broker.emqx.io");
       setMqttStatus('CONNECTED');
       client.subscribe("kadal/sos", (err) => {
         if (err) console.error("MQTT Subscription Error:", err);
@@ -910,3 +911,4 @@ export default function CommandDashboard() {
     </>
   );
 }
+
