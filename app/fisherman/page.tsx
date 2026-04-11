@@ -33,17 +33,15 @@ export default function FishermanPage() {
 
       warnings.forEach((w: any) => {
         const t = w.timestamp?.toMillis?.() !== undefined ? w.timestamp.toMillis() : Date.now();
-        
-          const dist = w.district?.trim() || 'UNKNOWN';
-          if (!uniqueWarningsMap.has(dist)) {
+        const dist = w.district?.trim() || 'UNKNOWN';
+        if (!uniqueWarningsMap.has(dist)) {
+          w._t = t;
+          uniqueWarningsMap.set(dist, w);
+        } else {
+          const existing = uniqueWarningsMap.get(dist);
+          if (t > existing._t) {
             w._t = t;
             uniqueWarningsMap.set(dist, w);
-          } else {
-            const existing = uniqueWarningsMap.get(dist);
-            if (t > existing._t) {
-              w._t = t;
-              uniqueWarningsMap.set(dist, w);
-            }
           }
         }
       });
