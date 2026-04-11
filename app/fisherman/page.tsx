@@ -19,6 +19,7 @@ export default function FishermanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeWarnings, setActiveWarnings] = useState<any[]>([]);
   const [dismissedWarningIds, setDismissedWarningIds] = useState<string[]>([]);
+  const [mountTime] = useState(() => Date.now());
 
   useEffect(() => {
     const q = query(
@@ -33,8 +34,8 @@ export default function FishermanPage() {
 
       warnings.forEach((w: any) => {
         const t = w.timestamp?.toMillis?.() !== undefined ? w.timestamp.toMillis() : Date.now();
-        // Only show warnings from the last 12 hours
-        if ((now - t) < 12 * 60 * 60 * 1000) {
+        // Ignore all historical alerts to prevent starting with 20 items in queue
+        if (t >= mountTime) {
           const dist = w.district?.trim() || 'UNKNOWN';
           if (!uniqueWarningsMap.has(dist)) {
             w._t = t;
